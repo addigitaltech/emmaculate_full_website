@@ -1,0 +1,16 @@
+@extends('site.layout')
+@section('title', 'Contact | '.$settings->short_name)
+@section('description', 'Contact Emmaculate Academy in Arigidi Akoko, Ondo State.')
+@section('content')
+<section class="bg-white"><div class="site-container grid gap-10 py-12 sm:py-16 lg:grid-cols-2"><div><p class="text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">Get in Touch</p><h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)] sm:text-5xl">Contact the School</h1><p class="mt-5 leading-relaxed text-[var(--ink-soft)]">Send an enquiry to Emmaculate Academy. The school will respond using the contact details you provide.</p><div class="mt-8 space-y-3 text-sm text-[var(--ink-soft)]">@if($settings->address)<p><strong class="text-[var(--ink)]">Address:</strong> {{ $settings->address }}</p>@endif@if($settings->phone_primary)<p><strong class="text-[var(--ink)]">Phone:</strong> <a href="tel:{{ $settings->phone_primary }}">{{ $settings->phone_primary }}</a></p>@endif@if($settings->email)<p><strong class="text-[var(--ink)]">Email:</strong> <a href="mailto:{{ $settings->email }}">{{ $settings->email }}</a></p>@endif@if($settings->office_hours)<p><strong class="text-[var(--ink)]">Office hours:</strong> {{ $settings->office_hours }}</p>@endif</div></div>
+<div class="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-alt)] p-6 sm:p-8"><form method="post" action="{{ route('contact.send') }}" class="space-y-4">@csrf
+<label class="block text-sm font-medium">Your name<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" class="mt-1 block w-full rounded-md border border-[var(--border)] bg-white px-3 py-2.5"></label>
+<label class="block text-sm font-medium">Email<input name="email" type="email" value="{{ old('email') }}" required maxlength="190" autocomplete="email" class="mt-1 block w-full rounded-md border border-[var(--border)] bg-white px-3 py-2.5"></label>
+<label class="block text-sm font-medium">Phone (optional)<input name="phone" type="tel" value="{{ old('phone') }}" maxlength="40" autocomplete="tel" class="mt-1 block w-full rounded-md border border-[var(--border)] bg-white px-3 py-2.5"></label>
+<label class="block text-sm font-medium">Subject (optional)<input name="subject" value="{{ old('subject') }}" maxlength="160" class="mt-1 block w-full rounded-md border border-[var(--border)] bg-white px-3 py-2.5"></label>
+<label class="block text-sm font-medium">Message<textarea name="message" rows="6" required minlength="10" maxlength="5000" class="mt-1 block w-full rounded-md border border-[var(--border)] bg-white px-3 py-2.5">{{ old('message') }}</textarea></label>
+<div class="hidden" aria-hidden="true"><label>Leave this field blank<input name="website" tabindex="-1" autocomplete="off"></label></div>
+@if($errors->any())<div role="alert" class="rounded bg-red-50 p-3 text-sm text-red-800">Please review the form fields and try again. Your message was not sent.</div>@endif
+<button type="submit" class="rounded-md bg-[var(--brand-700)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-800)]">Send Message</button>
+<p class="text-xs text-[var(--ink-soft)]">Messages are stored securely for school follow-up. Do not include sensitive medical, financial or identity documents.</p></form></div></div></section>
+@endsection

@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Filament\Resources\PaymentGatewayConfigResource\Pages;
+
+use App\Filament\Resources\PaymentGatewayConfigResource;
+use Filament\Resources\Pages\ListRecords;
+
+class ListPaymentGatewayConfigs extends ListRecords
+{
+    protected static string $resource = PaymentGatewayConfigResource::class;
+
+}

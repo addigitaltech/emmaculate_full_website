@@ -1,0 +1,8 @@
+@extends('site.layout')
+@section('title', 'News | '.$settings->short_name)
+@section('description', 'Published news and updates from Emmaculate Academy.')
+@section('content')
+<section class="bg-white"><div class="site-container py-12 sm:py-16"><p class="text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">From the Academy</p><h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)] sm:text-5xl">News &amp; Updates</h1>
+@if($posts->isEmpty())<p class="mt-8 rounded-lg border border-dashed border-[var(--border)] p-6 text-[var(--ink-soft)]">There are no published news stories yet. Please check back later.</p>@else<div class="mt-9 grid gap-6 md:grid-cols-2 lg:grid-cols-3">@foreach($posts as $post)<article class="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-alt)]">@if($post->coverImage)<img src="{{ $post->coverImage->url() }}" alt="{{ $post->coverImage->alt_text ?: $post->title }}" class="h-52 w-full object-cover" loading="lazy">@endif<div class="p-5"><p class="text-xs font-semibold uppercase tracking-wide text-[var(--brand-600)]">{{ $post->category ?: 'News' }} · {{ $post->published_at?->format('M j, Y') }}</p><h2 class="mt-2 font-display text-xl font-semibold text-[var(--brand-800)]"><a href="{{ route('news.show', $post->slug) }}">{{ $post->title }}</a></h2>@if($post->excerpt)<p class="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{{ $post->excerpt }}</p>@endif<a href="{{ route('news.show', $post->slug) }}" class="mt-4 inline-block text-sm font-semibold text-[var(--brand-700)] underline underline-offset-4">Read more</a></div></article>@endforeach</div><div class="mt-9">{{ $posts->links() }}</div>@endif
+</div></section>
+@endsection
