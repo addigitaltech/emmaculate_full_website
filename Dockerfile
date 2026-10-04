@@ -1,26 +1,60 @@
-FROM node:20-alpine AS assets
-WORKDIR /app
-COPY package*.json ./
+# Build frontend assets independently from the PHP runtime image.
+FROM node:20-bookworm-slim AS frontend
+
+WORKDIR /var/www/html
+
+COPY package.json package-lock.json ./
 RUN npm ci
+
 COPY . .
 RUN npm run build
 
-FROM php:8.3-apache
-RUN apt-get update && apt-get install -y git unzip libpq-dev libzip-dev libicu-dev libpng-dev \
- && docker-php-ext-install pdo_pgsql zip intl gd bcmath opcache \
- && a2enmod rewrite && rm -rf /var/lib/apt/lists/*
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
- /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Laravel runtime: PHP 8.3 Apache, matching composer.json.
+FROM php:8.3-apache AS app
+
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
+    APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcurl4-openssl-dev \
+        libfreetype6-dev \
+        libicu-dev \
+        libjpeg62-turbo-dev \
+        libonig-dev \
+        libpng-dev \
+        libpq-dev \
+        libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo \
+        pdo_pgsql \
+        pdo_mysql \
+        curl \
+        gd \
+        mbstring \
+        bcmath \
+        intl \
+        zip \
+        opcache \
+    && a2enmod rewrite headers \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /var/www/html
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 COPY . .
-COPY --from=assets /app/public/build public/build
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
- && chown -R www-data:www-data storage bootstrap/cache
-CMD sed -i "s/Listen 80/Listen ${PORT:-80}/" /etc/apache2/ports.conf \
- && sed -i "s/:80>/:${PORT:-80}>/" /etc/apache2/sites-available/000-default.conf \
- && php artisan migrate --force \
- && php artisan storage:link \
- && php artisan config:cache && php artisan route:cache && php artisan view:cache \
- && apache2-foreground
+
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader \
+    && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY --from=frontend /var/www/html/public/build /var/www/html/public/build
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint
+RUN chmod +x /usr/local/bin/docker-entrypoint
+
+EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]
