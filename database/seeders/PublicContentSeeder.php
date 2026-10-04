@@ -170,8 +170,8 @@ class PublicContentSeeder extends Seeder
         foreach ($main as $index => [$label, $url, $parentLabel]) {
             $parentId = $parentLabel ? ($parents[$parentLabel] ?? null) : null;
             $item = NavigationItem::query()->firstOrCreate(
-                ['menu' => 'main', 'label' => $label],
-                ['parent_id' => $parentId, 'url' => $url, 'is_visible' => true, 'sort_order' => $index],
+                ['menu' => 'main', 'url' => $url, 'parent_id' => $parentId],
+                ['label' => $label, 'parent_id' => $parentId, 'url' => $url, 'is_visible' => true, 'sort_order' => $index],
             );
             if (! $parentLabel) {
                 $parents[$label] = $item->id;

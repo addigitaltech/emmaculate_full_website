@@ -1,6 +1,17 @@
 @extends('site.layout')
 @section('title', 'Frequently Asked Questions | '.$settings->short_name)
-@section('description', 'Frequently asked questions about Emmaculate Academy.')
+@section('description', 'Frequently asked questions about '.$settings->school_name.'.')
 @section('content')
-<section class="bg-white"><div class="site-container max-w-4xl py-12 sm:py-16"><p class="text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">Help &amp; Information</p><h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)] sm:text-5xl">Frequently Asked Questions</h1>@if($faqs->isEmpty())<p class="mt-8 rounded-lg border border-dashed border-[var(--border)] p-6 text-[var(--ink-soft)]">Frequently asked questions will be published here when confirmed by the school. For now, please <a class="underline" href="{{ route('contact') }}">contact us</a>.</p>@else<div class="mt-8 divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">@foreach($faqs as $faq)<details class="group p-5"><summary class="cursor-pointer list-none font-semibold text-[var(--brand-800)]"><span class="mr-2 text-[var(--accent)]" aria-hidden="true">+</span>{{ $faq->question }}</summary><div class="prose-school mt-3 text-sm">@foreach(preg_split('/\R\s*\R/', $faq->answer) as $paragraph)<p>{{ $paragraph }}</p>@endforeach</div></details>@endforeach</div>@endif</div></section>
+<x-page-hero eyebrow="Help & information" title="Frequently Asked Questions" lead="Answers to common questions from parents, guardians and students." :image="$heroImage" :crumbs="[['Home', route('home')], ['FAQ', null]]" />
+<section class="section"><div class="site-container" style="max-width:52rem">
+    @if($faqs->isEmpty())
+        <p class="empty-state">Frequently asked questions will be published here when confirmed by the school. For now, please <a href="{{ route('contact') }}" style="text-decoration:underline">contact us</a>.</p>
+    @else
+        <div class="card card--pad faq">
+            @foreach($faqs as $faq)
+                <details><summary>{{ $faq->question }} <x-site-icon name="chevron" /></summary><div>@foreach(preg_split('/\R\s*\R/', (string) $faq->answer) as $paragraph)@if(trim($paragraph))<p style="margin:.4rem 0">{{ $paragraph }}</p>@endif @endforeach</div></details>
+            @endforeach
+        </div>
+    @endif
+</div></section>
 @endsection

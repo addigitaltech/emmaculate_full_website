@@ -19,6 +19,8 @@ if [ ! -e public/storage ] && [ ! -L public/storage ]; then
     php artisan storage:link
 fi
 
+php artisan school:init
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache

@@ -9,6 +9,9 @@ use App\Http\Controllers\SiteController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
+Route::get('/about', [SiteController::class, 'about'])->name('about');
+Route::get('/history', [SiteController::class, 'history'])->name('history');
+Route::get('/mission-vision', [SiteController::class, 'missionVision'])->name('mission');
 Route::get('/academics', [SiteController::class, 'academics'])->name('academics');
 Route::get('/academics/{slug}', [SiteController::class, 'programme'])->where('slug', '[A-Za-z0-9-]+')->name('academics.programme');
 Route::get('/admissions', [SiteController::class, 'admissions'])->name('admissions');
@@ -23,6 +26,7 @@ Route::get('/gallery', [SiteController::class, 'gallery'])->name('gallery');
 Route::get('/faq', [SiteController::class, 'faq'])->name('faq');
 Route::get('/contact', [SiteController::class, 'contact'])->name('contact');
 Route::post('/contact', [SiteController::class, 'storeContact'])->middleware('throttle:contact')->name('contact.send');
+Route::post('/newsletter', [SiteController::class, 'subscribeNewsletter'])->middleware('throttle:contact')->name('newsletter.subscribe');
 Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->name('payments.return');
 
 Route::get('/portal', [PortalController::class, 'index'])->name('portal');

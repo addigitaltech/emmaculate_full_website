@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Website\Support\PageBlocks;
+use App\Domain\Website\Support\SiteSections;
 use App\Models\AcademicProgramme;
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionsSettings;
@@ -16,6 +18,8 @@ use App\Models\LeadershipProfile;
 use App\Models\MediaAsset;
 use App\Models\NavigationItem;
 use App\Models\NewsPost;
+use App\Models\NewsletterSubscriber;
+use App\Models\PortalLink;
 use App\Models\SchoolEvent;
 use App\Models\SchoolSettings;
 use Illuminate\Http\RedirectResponse;
@@ -26,17 +30,87 @@ use Illuminate\View\View;
 
 class SiteController extends Controller
 {
+    /** Default page-banner photographs (all shipped with the project). Admins can override them, see heroUrl(). */
+    private const HERO_DEFAULTS = [
+        'about' => 'migrated-images/students-reading.jpg',
+        'history' => 'migrated-images/students-reading.jpg',
+        'mission' => 'migrated-images/students-reading.jpg',
+        'academics' => 'migrated-images/lab.jpg',
+        'admissions' => 'migrated-images/textbooks.jpg',
+        'news' => 'migrated-images/school-gate.jpg',
+        'events' => 'migrated-images/school-gate.jpg',
+        'gallery' => 'migrated-images/textbooks.jpg',
+        'leadership' => 'migrated-images/students-reading.jpg',
+        'contact' => 'migrated-images/school-gate.jpg',
+        'faq' => 'migrated-images/students-group.jpg',
+        'portal' => 'migrated-images/students-group.jpg',
+        'page' => 'migrated-images/students-reading.jpg',
+    ];
+
+    private ?SchoolSettings $settingsCache = null;
+
     public function home(): View
     {
+        $about = CmsPage::published()->where('slug', 'about')->first();
+
         return $this->render('site.home', [
             'slides' => HeroSlide::query()->where('is_enabled', true)->orderBy('sort_order')->get(),
-            'programmes' => AcademicProgramme::query()->where('is_published', true)->orderBy('sort_order')->get(),
+            'programmes' => AcademicProgramme::query()->where('is_published', true)->with('image')->orderBy('sort_order')->limit(3)->get(),
             'news' => NewsPost::published()->with('coverImage')->orderByDesc('published_at')->limit(3)->get(),
-            'events' => SchoolEvent::published()->orderBy('starts_at')->limit(3)->get(),
-            'leaders' => LeadershipProfile::query()->where('is_visible', true)->with('photo')->orderBy('sort_order')->limit(3)->get(),
-            'albums' => GalleryAlbum::query()->where('status', 'published')->with(['coverImage', 'images'])->orderBy('sort_order')->limit(3)->get(),
+            'events' => SchoolEvent::published()->upcoming()->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get(),
             'announcements' => Announcement::visibleNow()->with('image')->orderBy('sort_order')->orderByDesc('starts_at')->limit(3)->get(),
-            'stats' => SchoolSettings::current()->verified_stats ?? [],
+            'stats' => $this->settings()->verified_stats ?? [],
+            'aboutParagraphs' => $about ? PageBlocks::paragraphs($about->content_blocks ?? [], 2) : [],
+            'aboutImage' => asset('storage/migrated-images/students-reading.jpg'),
+            'seoDescription' => $this->settings()->description,
+        ]);
+    }
+
+    public function about(): View
+    {
+        $page = CmsPage::published()->with('featuredMedia')->where('slug', 'about')->first();
+        $mvPage = CmsPage::published()->where('slug', 'mission-vision')->first();
+        $groups = $mvPage ? PageBlocks::keyed($mvPage->content_blocks ?? []) : [];
+
+        return $this->render('site.about', [
+            'page' => $page,
+            'paragraphs' => $page ? PageBlocks::paragraphs($page->content_blocks ?? [], 4) : [],
+            'mission' => $groups['mission']['paragraphs'][0] ?? null,
+            'vision' => $groups['vision']['paragraphs'][0] ?? null,
+            'aboutImage' => asset('storage/migrated-images/textbooks.jpg'),
+            'leaders' => LeadershipProfile::query()->where('is_visible', true)->with('photo')->orderBy('sort_order')->limit(2)->get(),
+            'heroImage' => $this->heroUrl('about', $page?->featuredMedia),
+            'seoTitle' => $page?->seo_title ?: 'About Us',
+            'seoDescription' => $page?->seo_description ?: $page?->excerpt,
+        ]);
+    }
+
+    public function history(): View
+    {
+        $page = CmsPage::published()->where('slug', 'history')->first();
+        $chapters = $page ? PageBlocks::chapters($page->content_blocks ?? []) : [];
+        $mediaIds = collect($chapters)->pluck('media_id')->filter()->unique()->all();
+
+        return $this->render('site.history', [
+            'page' => $page,
+            'chapters' => $chapters,
+            'contentMedia' => MediaAsset::query()->whereIn('id', $mediaIds)->get()->keyBy('id'),
+            'heroImage' => $this->heroUrl('history'),
+            'seoTitle' => $page?->seo_title ?: 'Our History',
+            'seoDescription' => $page?->seo_description ?: $page?->excerpt,
+        ]);
+    }
+
+    public function missionVision(): View
+    {
+        $page = CmsPage::published()->where('slug', 'mission-vision')->first();
+
+        return $this->render('site.mission', [
+            'page' => $page,
+            'groups' => $page ? PageBlocks::keyed($page->content_blocks ?? []) : [],
+            'heroImage' => $this->heroUrl('mission'),
+            'seoTitle' => $page?->seo_title ?: 'Mission, Vision, Pledge & Anthem',
+            'seoDescription' => $page?->seo_description ?: $page?->excerpt,
         ]);
     }
 
@@ -44,9 +118,11 @@ class SiteController extends Controller
     {
         $page = CmsPage::published()->with('featuredMedia')->where('slug', $slug)->firstOrFail();
         $mediaIds = collect($page->content_blocks ?? [])->pluck('media_id')->filter()->unique();
+
         return $this->render('site.page', [
             'page' => $page,
             'contentMedia' => MediaAsset::query()->whereIn('id', $mediaIds)->get()->keyBy('id'),
+            'heroImage' => $this->heroUrl('page', $page->featuredMedia),
             'seoTitle' => $page->seo_title ?: $page->title,
             'seoDescription' => $page->seo_description ?: $page->excerpt,
         ]);
@@ -56,65 +132,155 @@ class SiteController extends Controller
     {
         return $this->render('site.academics', [
             'programmes' => AcademicProgramme::query()->where('is_published', true)->with('image')->orderBy('sort_order')->get(),
+            'heroImage' => $this->heroUrl('academics'),
+            'seoDescription' => 'Explore Primary and Secondary education at Emmaculate Academy.',
         ]);
     }
 
     public function programme(string $slug): View
     {
         $programme = AcademicProgramme::query()->where('is_published', true)->where('slug', $slug)->with('image')->firstOrFail();
-        return $this->render('site.programme', ['programme' => $programme, 'seoTitle' => $programme->seo_title ?: $programme->title, 'seoDescription' => $programme->seo_description ?: $programme->intro]);
+
+        return $this->render('site.programme', [
+            'programme' => $programme,
+            'heroImage' => $this->heroUrl('academics', $programme->image),
+            'seoTitle' => $programme->seo_title ?: $programme->title,
+            'seoDescription' => $programme->seo_description ?: $programme->intro,
+        ]);
     }
 
     public function admissions(): View
     {
-        return $this->render('site.admissions', ['admissions' => AdmissionsSettings::current()->load('image')]);
+        $admissions = AdmissionsSettings::current()->load('image');
+        $steps = SiteSections::items('admissions.steps');
+        if ($steps === []) {
+            // Fall back to the plain list of steps edited under Admissions settings.
+            $steps = array_map(fn ($text) => ['icon' => 'checkCircle', 'title' => (string) $text, 'text' => ''], array_values($admissions->process_steps ?? []));
+        }
+        $levels = SiteSections::items('admissions.levels');
+        $levelMedia = MediaAsset::query()->whereIn('id', collect($levels)->pluck('media_id')->filter()->all())->get()->keyBy('id');
+
+        return $this->render('site.admissions', [
+            'admissions' => $admissions,
+            'steps' => $steps,
+            'levels' => $levels,
+            'levelMedia' => $levelMedia,
+            'faqs' => Faq::query()->where('is_visible', true)->orderBy('sort_order')->limit(4)->get(),
+            'heroImage' => $this->heroUrl('admissions', $admissions->image),
+            'seoDescription' => 'Admission information for Emmaculate Academy. Contact the school for current availability.',
+        ]);
     }
 
     public function leadership(): View
     {
-        return $this->render('site.leadership', ['leaders' => LeadershipProfile::query()->where('is_visible', true)->with('photo')->orderBy('sort_order')->get()]);
+        return $this->render('site.leadership', [
+            'leaders' => LeadershipProfile::query()->where('is_visible', true)->with('photo')->orderBy('sort_order')->get(),
+            'heroImage' => $this->heroUrl('leadership'),
+        ]);
     }
 
     public function news(): View
     {
-        return $this->render('site.news.index', ['posts' => NewsPost::published()->with('coverImage')->orderByDesc('published_at')->paginate(9)]);
+        return $this->render('site.news.index', [
+            'posts' => NewsPost::published()->with('coverImage')->orderByDesc('published_at')->paginate(6),
+            'events' => SchoolEvent::published()->upcoming()->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get(),
+            'highlights' => $this->galleryPhotos(2),
+            'heroImage' => $this->heroUrl('news'),
+            'seoDescription' => 'Published news and updates from Emmaculate Academy.',
+        ]);
     }
 
     public function newsShow(string $slug): View
     {
         $post = NewsPost::published()->with('coverImage', 'author')->where('slug', $slug)->firstOrFail();
-        return $this->render('site.news.show', ['post' => $post, 'seoTitle' => $post->seo_title ?: $post->title, 'seoDescription' => $post->seo_description ?: $post->excerpt]);
+
+        return $this->render('site.news.show', [
+            'post' => $post,
+            'related' => NewsPost::published()->with('coverImage')->where('id', '!=', $post->id)->orderByDesc('published_at')->limit(3)->get(),
+            'heroImage' => $this->heroUrl('news'),
+            'seoTitle' => $post->seo_title ?: $post->title,
+            'seoDescription' => $post->seo_description ?: $post->excerpt,
+        ]);
     }
 
     public function events(): View
     {
-        return $this->render('site.events.index', ['events' => SchoolEvent::published()->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->paginate(9)]);
-    }
-
-    public function announcements(): View
-    {
-        return $this->render('site.announcements', ['announcements' => Announcement::visibleNow()->with('image')->orderBy('sort_order')->orderByDesc('starts_at')->paginate(12)]);
+        return $this->render('site.events.index', [
+            'events' => SchoolEvent::published()->with('image')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->paginate(9),
+            'heroImage' => $this->heroUrl('events'),
+        ]);
     }
 
     public function eventShow(string $slug): View
     {
         $event = SchoolEvent::published()->with('image')->where('slug', $slug)->firstOrFail();
-        return $this->render('site.events.show', ['event' => $event, 'seoTitle' => $event->seo_title ?: $event->title, 'seoDescription' => $event->seo_description ?: $event->description]);
+
+        return $this->render('site.events.show', [
+            'event' => $event,
+            'heroImage' => $this->heroUrl('events'),
+            'seoTitle' => $event->seo_title ?: $event->title,
+            'seoDescription' => $event->seo_description ?: $event->description,
+        ]);
+    }
+
+    public function announcements(): View
+    {
+        return $this->render('site.announcements', [
+            'announcements' => Announcement::visibleNow()->with('image')->orderBy('sort_order')->orderByDesc('starts_at')->paginate(12),
+            'heroImage' => $this->heroUrl('news'),
+        ]);
     }
 
     public function gallery(): View
     {
-        return $this->render('site.gallery', ['albums' => GalleryAlbum::query()->where('status', 'published')->with(['coverImage', 'images.media'])->orderBy('sort_order')->get()]);
+        $albums = GalleryAlbum::query()->where('status', 'published')->with(['images.media'])->orderBy('sort_order')->get();
+        $categories = [];
+        $photos = [];
+
+        foreach ($albums as $album) {
+            $count = 0;
+            foreach ($album->images as $image) {
+                $url = $image->media?->url() ?? ($image->image_path ? asset('storage/'.$image->image_path) : null);
+                if (! $url || count($photos) >= 150) {
+                    continue;
+                }
+                $photos[] = [
+                    'url' => $url,
+                    'alt' => $image->alt_text ?: ($image->media?->alt_text ?: $album->title),
+                    'caption' => $image->caption ?: $album->title,
+                    'album' => $album->slug,
+                    'albumTitle' => $album->title,
+                ];
+                $count++;
+            }
+            if ($count > 0) {
+                $categories[] = ['slug' => $album->slug, 'title' => $album->title, 'count' => $count];
+            }
+        }
+
+        return $this->render('site.gallery', [
+            'categories' => $categories,
+            'photos' => $photos,
+            'heroImage' => $this->heroUrl('gallery'),
+            'seoDescription' => 'Photographs from the Emmaculate Academy community.',
+        ]);
     }
 
     public function faq(): View
     {
-        return $this->render('site.faq', ['faqs' => Faq::query()->where('is_visible', true)->orderBy('sort_order')->get()]);
+        return $this->render('site.faq', [
+            'faqs' => Faq::query()->where('is_visible', true)->orderBy('sort_order')->get(),
+            'heroImage' => $this->heroUrl('faq'),
+        ]);
     }
 
-    public function contact(): View
+    public function contact(Request $request): View
     {
-        return $this->render('site.contact');
+        return $this->render('site.contact', [
+            'heroImage' => $this->heroUrl('contact'),
+            'prefillSubject' => Str::limit(trim(strip_tags((string) $request->query('subject', ''))), 160, ''),
+            'seoDescription' => 'Contact Emmaculate Academy in Arigidi Akoko, Ondo State.',
+        ]);
     }
 
     public function storeContact(Request $request): RedirectResponse
@@ -138,7 +304,28 @@ class SiteController extends Controller
             'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
             'received_at' => now(),
         ]);
+
         return redirect()->route('contact')->with('success', 'Thank you. Your message has been received.');
+    }
+
+    public function subscribeNewsletter(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'newsletter_email' => ['required', 'email:rfc', 'max:190'],
+            'website' => ['nullable', 'max:0'],
+        ]);
+
+        NewsletterSubscriber::query()->firstOrCreate(
+            ['email' => Str::lower(trim($data['newsletter_email']))],
+            [
+                'status' => 'subscribed',
+                'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
+                'subscribed_at' => now(),
+            ],
+        );
+
+        // The same message is shown whether or not the address was already subscribed.
+        return back()->with('success', 'Thank you for subscribing. We will keep you updated.');
     }
 
     public function storeAdmissionApplication(Request $request): RedirectResponse
@@ -160,16 +347,73 @@ class SiteController extends Controller
             'metadata' => [],
             'submitted_at' => now(),
         ]);
+
         return redirect()->route('admissions')->with('application_reference', $application->reference);
+    }
+
+    private function settings(): SchoolSettings
+    {
+        return $this->settingsCache ??= SchoolSettings::current();
+    }
+
+    /**
+     * Banner image for a page. Priority: the page's own featured media, then an admin override in
+     * School settings > global settings (key "hero_<page>" holding a media-library ID or a storage path),
+     * then the shipped default photograph.
+     */
+    private function heroUrl(string $key, ?MediaAsset $media = null): ?string
+    {
+        if ($media) {
+            return $media->url();
+        }
+
+        $configured = data_get($this->settings()->global_settings, 'hero_'.$key);
+        if (filled($configured)) {
+            $configured = trim((string) $configured);
+            if (ctype_digit($configured)) {
+                $asset = MediaAsset::query()->find((int) $configured);
+                if ($asset) {
+                    return $asset->url();
+                }
+            } elseif (! str_contains($configured, '..')) {
+                return asset('storage/'.ltrim($configured, '/'));
+            }
+        }
+
+        $default = self::HERO_DEFAULTS[$key] ?? null;
+
+        return $default ? asset('storage/'.$default) : null;
+    }
+
+    /** @return array<int, array{url: string, alt: string}> */
+    private function galleryPhotos(int $limit): array
+    {
+        $albums = GalleryAlbum::query()->where('status', 'published')->with(['images.media'])->orderBy('sort_order')->get();
+        $photos = [];
+        foreach ($albums as $album) {
+            foreach ($album->images as $image) {
+                $url = $image->media?->url() ?? ($image->image_path ? asset('storage/'.$image->image_path) : null);
+                if ($url) {
+                    $photos[] = ['url' => $url, 'alt' => $image->alt_text ?: ($image->media?->alt_text ?: $album->title)];
+                }
+                if (count($photos) >= $limit) {
+                    return $photos;
+                }
+            }
+        }
+
+        return $photos;
     }
 
     private function render(string $view, array $data = []): View
     {
         $base = [
-            'settings' => SchoolSettings::current(),
+            'settings' => $this->settings(),
             'navigation' => NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get(),
             'footerSections' => FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
+            'portalLinks' => PortalLink::query()->publiclyVisible()->get(),
         ];
+
         return view($view, array_merge($base, $data));
     }
 }

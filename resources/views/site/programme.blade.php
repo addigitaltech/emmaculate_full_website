@@ -2,14 +2,17 @@
 @section('title', ($seoTitle ?? $programme->title).' | '.$settings->short_name)
 @section('description', $seoDescription ?? $programme->intro)
 @section('content')
-    @php($image = $programme->image?->url() ?? ($programme->image_path ? asset('storage/'.$programme->image_path) : null))
-    <section class="bg-white"><div class="site-container max-w-5xl py-12 sm:py-16">
-        <a href="{{ route('academics') }}" class="text-sm font-semibold text-[var(--brand-700)] underline underline-offset-4">← All Academics</a>
-        <p class="mt-7 text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">{{ ucfirst($programme->level) }}</p>
-        <h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)] sm:text-5xl">{{ $programme->title }}</h1>
-        @if($image)<img src="{{ $image }}" alt="{{ $programme->image?->alt_text ?: $programme->title }}" class="mt-8 max-h-[480px] w-full rounded-[var(--radius-lg)] object-cover" loading="lazy">@endif
-        <p class="mt-7 max-w-4xl text-lg leading-relaxed text-[var(--ink-soft)]">{{ $programme->intro }}</p>
-        @if($programme->placeholder_note)<aside class="mt-8 rounded-lg border-l-4 border-[var(--accent)] bg-[var(--surface-alt)] p-5 text-sm leading-relaxed text-[var(--ink-soft)]">{{ $programme->placeholder_note }}</aside>@endif
-        @if($programme->approach)<ul class="mt-6 space-y-3">@foreach($programme->approach as $item)<li class="rounded-lg border border-[var(--border)] p-4 text-sm text-[var(--ink-soft)]">{{ $item }}</li>@endforeach</ul>@endif
-    </div></section>
+@php
+    $image = $programme->image?->url() ?? ($programme->image_path ? asset('storage/'.$programme->image_path) : null);
+@endphp
+<x-page-hero :eyebrow="ucfirst($programme->level)" :title="$programme->title" :lead="\Illuminate\Support\Str::limit((string) $programme->intro, 140)" :image="$heroImage" :crumbs="[['Home', route('home')], ['Academics', route('academics')], [$programme->title, null]]" />
+<section class="section">
+    <div class="site-container" style="max-width:56rem">
+        @if($image)<div class="photo-frame" style="margin-bottom:1.5rem"><img src="{{ $image }}" alt="{{ $programme->image?->alt_text ?: $programme->title }}" style="max-height:440px" loading="lazy" decoding="async"></div>@endif
+        <p style="font-size:1.1rem;line-height:1.8" class="muted">{{ $programme->intro }}</p>
+        @if($programme->placeholder_note)<aside class="note-bar" style="margin-top:1.5rem"><x-site-icon name="info" /><span>{{ $programme->placeholder_note }}</span></aside>@endif
+        @if($programme->approach)<ul class="tick-list" style="margin-top:1.2rem">@foreach($programme->approach as $item)<li><x-site-icon name="check" /><span>{{ $item }}</span></li>@endforeach</ul>@endif
+        <p style="margin-top:2rem"><a class="btn btn--outline" href="{{ route('academics') }}">All academics</a> <a class="btn btn--maroon" href="{{ route('admissions') }}">Admissions</a></p>
+    </div>
+</section>
 @endsection

@@ -32,7 +32,7 @@ class CmsPageResource extends AuthorizedResource
             Forms\Components\Textarea::make('excerpt')->rows(3)->maxLength(500)->columnSpanFull(),
             Forms\Components\Textarea::make('content')->rows(8)->helperText('Plain text is always escaped. Prefer the structured content blocks below for page sections.')->columnSpanFull(),
             Forms\Components\Repeater::make('content_blocks')->schema([
-                Forms\Components\Select::make('type')->options(['heading' => 'Heading', 'paragraph' => 'Paragraph', 'list' => 'List', 'quote' => 'Quote', 'image' => 'Image', 'cta' => 'Call to action'])->required(),
+                Forms\Components\Select::make('type')->options(['section' => 'Section title (starts a new card)', 'heading' => 'Heading', 'paragraph' => 'Paragraph', 'list' => 'List', 'quote' => 'Quote', 'image' => 'Image', 'cta' => 'Call to action'])->required(),
                 Forms\Components\Textarea::make('text')->label('Text or list items (one item per line)')->rows(3)->maxLength(5000)->columnSpanFull(),
                 Forms\Components\Select::make('media_id')->label('Image asset')->options(fn () => MediaAsset::query()->orderBy('original_name')->pluck('original_name', 'id'))->searchable()->preload(),
                 Forms\Components\TextInput::make('alt_text')->maxLength(250),

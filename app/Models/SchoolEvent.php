@@ -26,6 +26,15 @@ class SchoolEvent extends Model
             ->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
+    public function scopeUpcoming(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q): void {
+            $q->whereNull('starts_at')
+                ->orWhere('starts_at', '>=', now()->startOfDay())
+                ->orWhere('ends_at', '>=', now());
+        });
+    }
+
     public function image()
     {
         return $this->belongsTo(MediaAsset::class, 'image_id');

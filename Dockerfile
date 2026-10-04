@@ -1,4 +1,4 @@
-# Build frontend assets independently from the PHP runtime image.
+# Build the Vite bundle before installing PHP application dependencies.
 FROM node:20-bookworm-slim AS frontend
 
 WORKDIR /var/www/html

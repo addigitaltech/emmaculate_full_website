@@ -38,7 +38,7 @@ class CmsPage extends Model
                 throw ValidationException::withMessages(['content_blocks' => 'Content blocks must use the structured block editor.']);
             }
             foreach ($blocks as $index => $block) {
-                if (! is_array($block) || ! in_array($block['type'] ?? null, ['heading', 'paragraph', 'list', 'quote', 'image', 'cta'], true)) {
+                if (! is_array($block) || ! in_array($block['type'] ?? null, ['heading', 'paragraph', 'list', 'quote', 'image', 'cta', 'section'], true)) {
                     throw ValidationException::withMessages(['content_blocks' => 'A content block type is invalid.']);
                 }
                 if (isset($block['cta_url']) && ! SafePublicUrl::allows((string) $block['cta_url'])) {

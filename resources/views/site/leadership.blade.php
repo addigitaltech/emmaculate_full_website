@@ -1,8 +1,27 @@
 @extends('site.layout')
 @section('title', 'Leadership | '.$settings->short_name)
-@section('description', 'Meet the leadership team of Emmaculate Academy.')
+@section('description', 'Meet the leadership team of '.$settings->school_name.'.')
 @section('content')
-    <section class="bg-white"><div class="site-container py-12 sm:py-16"><p class="text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">Our People</p><h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)] sm:text-5xl">School Leadership</h1><p class="mt-5 max-w-3xl leading-relaxed text-[var(--ink-soft)]">The people serving the Emmaculate Academy community.</p>
-        @if($leaders->isEmpty())<p class="mt-8 rounded-lg border border-dashed border-[var(--border)] p-6 text-[var(--ink-soft)]">Leadership profiles will be added here.</p>@else<div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">@foreach($leaders as $leader)<article class="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-alt)]">@if($leader->photo)<img src="{{ $leader->photo->url() }}" alt="{{ $leader->photo->alt_text ?: $leader->name }}" class="h-72 w-full object-cover" loading="lazy">@else<div class="flex h-72 items-center justify-center bg-white text-sm text-[var(--ink-soft)]">Photo not supplied</div>@endif<div class="p-6"><h2 class="font-display text-xl font-semibold text-[var(--brand-800)]">{{ $leader->name }}</h2><p class="mt-1 text-sm text-[var(--ink-soft)]">{{ $leader->title }}</p>@if($leader->biography)<p class="mt-4 text-sm leading-relaxed text-[var(--ink-soft)]">{{ $leader->biography }}</p>@endif</div></article>@endforeach</div>@endif
-    </div></section>
+<x-page-hero title="School Leadership" lead="The people serving the Emmaculate Academy community." :image="$heroImage" :crumbs="[['Home', route('home')], ['About Us', route('about')], ['Leadership', null]]" />
+<section class="section"><div class="site-container">
+    @if($leaders->isEmpty())
+        <p class="empty-state">Leadership profiles will be added here.</p>
+    @else
+        <div class="leader-grid" style="margin-top:0">
+            @foreach($leaders as $leader)
+                @php
+                    $photo = $leader->photo?->url() ?? ($leader->photo_path ? asset('storage/'.$leader->photo_path) : null);
+                @endphp
+                <article class="leader-card">
+                    <div class="leader-card__photo">@if($photo)<img src="{{ $photo }}" alt="{{ $leader->name }}, {{ $leader->title }}" loading="lazy" decoding="async">@else<span>Photo coming soon</span>@endif</div>
+                    <div class="leader-card__body">
+                        <p class="leader__role" style="font-size:1rem">{{ $leader->title }}</p>
+                        <h2 class="leader__name" style="font-size:1.1rem;margin-top:.4rem">{{ $leader->name }}</h2>
+                        @if($leader->biography)<p class="leader__bio">{{ $leader->biography }}</p>@endif
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    @endif
+</div></section>
 @endsection

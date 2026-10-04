@@ -22,6 +22,6 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('Emmaculate Academy')
             ->assertSee('Determined to make a difference')
-            ->assertSee('Primary &amp; Secondary Education', false);
+            ->assertSee('Our Academic Programs');
     }
 }

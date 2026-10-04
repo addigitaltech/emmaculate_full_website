@@ -1,6 +1,25 @@
 @extends('site.layout')
 @section('title', 'Events | '.$settings->short_name)
-@section('description', 'Published events from Emmaculate Academy.')
+@section('description', 'Published events from '.$settings->school_name.'.')
 @section('content')
-<section class="bg-white"><div class="site-container py-12 sm:py-16"><p class="text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">School Calendar</p><h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)] sm:text-5xl">Events</h1>@if($events->isEmpty())<p class="mt-8 rounded-lg border border-dashed border-[var(--border)] p-6 text-[var(--ink-soft)]">No events have been published yet. Please check back for school updates.</p>@else<div class="mt-9 grid gap-5 md:grid-cols-2">@foreach($events as $event)<article class="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-6"><p class="text-sm font-semibold text-[var(--brand-600)]">{{ $event->starts_at?->format('F j, Y · g:i a') ?: 'Date to be announced' }}@if($event->ends_at) – {{ $event->ends_at->format('F j, Y · g:i a') }}@endif</p><h2 class="mt-2 font-display text-2xl font-semibold text-[var(--brand-800)]"><a href="{{ route('events.show', $event->slug) }}">{{ $event->title }}</a></h2>@if($event->location)<p class="mt-2 text-sm text-[var(--ink-soft)]">{{ $event->location }}</p>@endif<p class="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">{{ $event->description }}</p></article>@endforeach</div><div class="mt-8">{{ $events->links() }}</div>@endif</div></section>
+<x-page-hero eyebrow="School calendar" title="Events" lead="Upcoming activities and celebrations at our school." :image="$heroImage" :crumbs="[['Home', route('home')], ['News & Events', route('news.index')], ['Events', null]]" />
+<section class="section"><div class="site-container">
+    @if($events->isEmpty())
+        <p class="empty-state">No events have been published yet. Please check back for school updates.</p>
+    @else
+        <div class="grid-2">
+            @foreach($events as $event)
+                <article class="card card--pad" style="display:flex;gap:1rem">
+                    <span class="date-badge date-badge--navy"><strong>{{ $event->starts_at?->format('d') ?: '--' }}</strong><span>{{ $event->starts_at ? strtoupper($event->starts_at->format('M')) : 'TBA' }}</span></span>
+                    <div>
+                        <h2 class="h3"><a href="{{ route('events.show', $event->slug) }}" style="color:inherit;text-decoration:none">{{ $event->title }}</a></h2>
+                        <ul class="event-row__meta">@if($event->starts_at)<li><x-site-icon name="calendar" />{{ $event->starts_at->format('M j, Y') }}@if($event->ends_at) &ndash; {{ $event->ends_at->format('M j, Y') }}@endif</li><li><x-site-icon name="clock" />{{ $event->starts_at->format('g:i A') }}</li>@endif @if($event->location)<li><x-site-icon name="pin" />{{ $event->location }}</li>@endif</ul>
+                        <p class="muted" style="margin:.7rem 0 0;font-size:.92rem">{{ \Illuminate\Support\Str::limit((string) $event->description, 140) }}</p>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+        <div class="pagination-wrap">{{ $events->links() }}</div>
+    @endif
+</div></section>
 @endsection
