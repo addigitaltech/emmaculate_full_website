@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Domain\Website\Support\SafePublicUrl;
+use App\Models\FooterSection;
+use App\Models\NavigationItem;
+use App\Models\PortalLink;
 use App\Models\Result;
 use App\Models\SchoolSettings;
 use App\Policies\ResultPolicy;
@@ -29,6 +32,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Result::class, ResultPolicy::class);
+        // The sign-in pages and score entry extend the site layout but their controllers do not pass the
+        // school settings, navigation or footer, which made /login return a server error. Supply them here.
+        View::composer(['auth.*', 'portal.score-entry'], function ($view): void {
+            $data = $view->getData();
+            $view->with([
+                'settings' => $data['settings'] ?? SchoolSettings::current(),
+                'navigation' => $data['navigation'] ?? NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get(),
+                'footerSections' => $data['footerSections'] ?? FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
+            ]);
+        });
         View::composer('site.layout', function ($view): void {
             $settings = $view->getData()['settings'] ?? SchoolSettings::current();
             $icons = ['facebook', 'twitter', 'instagram', 'youtube', 'tiktok', 'linkedin', 'whatsapp'];
@@ -45,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
                 $digits = '234'.substr($digits, 1);
             }
             $view->with([
+                'portalLinks' => $view->getData()['portalLinks'] ?? PortalLink::query()->publiclyVisible()->get(),
                 'socialLinks' => $social,
                 'whatsappUrl' => strlen($digits) >= 10 ? 'https://wa.me/'.$digits : null,
                 'currentPath' => trim(request()->path(), '/'),

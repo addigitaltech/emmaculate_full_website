@@ -30,6 +30,7 @@ class DesignRefreshSeeder extends Seeder
         $firstRun = ! filled(data_get($settings->global_settings, self::MARKER));
 
         $this->sections();
+        $this->branding($settings);
         $this->portalLinks($firstRun);
         $this->footer($firstRun);
         $this->navigation($firstRun);
@@ -40,6 +41,24 @@ class DesignRefreshSeeder extends Seeder
             $global = is_array($settings->global_settings) ? $settings->global_settings : [];
             $global[self::MARKER] = now()->toDateString();
             $settings->forceFill(['global_settings' => $global])->save();
+        }
+    }
+
+    /** Fill empty branding fields only; anything set in the admin is never overwritten. */
+    private function branding(SchoolSettings $settings): void
+    {
+        $updates = [];
+        if (! filled($settings->logo_path) && is_file(storage_path('app/public/migrated-images/logo.jpg'))) {
+            $updates['logo_path'] = 'migrated-images/logo.jpg';
+        }
+        if (! filled($settings->favicon_path) && is_file(storage_path('app/public/migrated-images/logo.jpg'))) {
+            $updates['favicon_path'] = 'migrated-images/logo.jpg';
+        }
+        if (! filled($settings->description)) {
+            $updates['description'] = 'Emmaculate Academy is a school in Arigidi Akoko, Ondo State, raising a morally upright generation of future leaders through sound academics and strong values.';
+        }
+        if ($updates !== []) {
+            $settings->forceFill($updates)->save();
         }
     }
 
