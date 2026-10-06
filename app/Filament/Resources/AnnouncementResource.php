@@ -50,9 +50,7 @@ class AnnouncementResource extends AuthorizedResource
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('image_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('image.path')->label('Image')->disk('public')->square(),
                 Tables\Columns\TextColumn::make('link_label')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('link_url')

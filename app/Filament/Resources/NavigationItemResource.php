@@ -20,7 +20,7 @@ class NavigationItemResource extends AuthorizedResource
 
     public static function form(Form $form): Form
     {
-        $safeUrlRule = function (string $attribute, $value, $fail): void {
+        $safeUrlRule = fn () => function (string $attribute, $value, $fail): void {
             if (filled($value) && ! SafePublicUrl::allows((string) $value)) $fail('Use an internal path or an HTTPS link without credentials.');
         };
         return $form->schema([

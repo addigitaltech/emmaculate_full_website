@@ -50,9 +50,7 @@ class GalleryAlbumResource extends AuthorizedResource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('cover_image_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('coverImage.path')->label('Cover')->disk('public')->square(),
                 Tables\Columns\TextColumn::make('status')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('sort_order')

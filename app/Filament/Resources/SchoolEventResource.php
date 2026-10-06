@@ -53,9 +53,7 @@ class SchoolEventResource extends AuthorizedResource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('image.path')->label('Image')->disk('public')->square(),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')

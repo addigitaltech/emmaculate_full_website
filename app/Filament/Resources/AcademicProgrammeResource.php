@@ -65,10 +65,7 @@ class AcademicProgrammeResource extends AuthorizedResource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('image_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\ImageColumn::make('image_path'),
+                Tables\Columns\ImageColumn::make('image.path')->label('Image')->disk('public')->square(),
                 Tables\Columns\IconColumn::make('is_published')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('sort_order')

@@ -62,9 +62,7 @@ class NewsPostResource extends AuthorizedResource
                 Tables\Columns\TextColumn::make('author_id')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\ImageColumn::make('cover_image_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('coverImage.path')->label('Cover')->disk('public')->square(),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
@@ -85,9 +83,9 @@ class NewsPostResource extends AuthorizedResource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('seo_title')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('social_image_id')
+                Tables\Columns\TextColumn::make('social_image_id')
                     ->numeric()
-                    ->sortable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

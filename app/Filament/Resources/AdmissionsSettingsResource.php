@@ -21,7 +21,7 @@ class AdmissionsSettingsResource extends AuthorizedResource
 
     public static function form(Form $form): Form
     {
-        $safeUrlRule = function (string $attribute, $value, $fail): void { if (filled($value) && ! SafePublicUrl::allows((string) $value)) $fail('Use an internal path or an HTTPS link without credentials.'); };
+        $safeUrlRule = fn () => function (string $attribute, $value, $fail): void { if (filled($value) && ! SafePublicUrl::allows((string) $value)) $fail('Use an internal path or an HTTPS link without credentials.'); };
         return $form->schema([
             Forms\Components\Select::make('status')->options(['unconfirmed' => 'Unconfirmed', 'closed' => 'Closed', 'coming_soon' => 'Coming soon', 'open' => 'Open for enquiries'])->default('unconfirmed')->required()->helperText('The application intake form is displayed only when set to Open for enquiries.'),
             Forms\Components\Textarea::make('intro')->rows(4)->maxLength(1200)->columnSpanFull(),
