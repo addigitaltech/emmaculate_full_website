@@ -152,7 +152,57 @@ function initBackToTop() {
     update();
 }
 
+/* ----- Score sheets: live total and grade ----- */
+function initSheets() {
+    document.querySelectorAll('[data-sheet]').forEach((sheet) => {
+        let bands = [];
+        try { bands = JSON.parse(sheet.dataset.bands || '[]'); } catch (e) { bands = []; }
+        const gradeFor = (total) => {
+            const band = bands.find((b) => total >= b.min && total <= b.max);
+            return band ? band.grade : '';
+        };
+        sheet.querySelectorAll('[data-row]').forEach((row) => {
+            const inputs = Array.from(row.querySelectorAll('[data-score]'));
+            const offered = row.querySelector('[data-offered]');
+            const totalEl = row.querySelector('[data-total]');
+            const gradeEl = row.querySelector('[data-grade]');
+            const update = () => {
+                const on = !offered || offered.checked;
+                inputs.forEach((input) => { input.disabled = !on; });
+                if (!on) {
+                    if (totalEl) totalEl.textContent = '—';
+                    if (gradeEl) { gradeEl.textContent = 'N/O'; gradeEl.classList.remove('is-fail'); }
+                    return;
+                }
+                let total = 0;
+                let bad = false;
+                inputs.forEach((input) => {
+                    const value = parseFloat(input.value);
+                    const max = parseFloat(input.max);
+                    if (!Number.isNaN(value)) {
+                        total += value;
+                        if (!Number.isNaN(max) && value > max) bad = true;
+                    }
+                    input.setCustomValidity(!Number.isNaN(value) && !Number.isNaN(max) && value > max ? 'Maximum is ' + max : '');
+                });
+                const touched = inputs.some((input) => input.value !== '');
+                if (totalEl) totalEl.textContent = touched ? String(Math.round(total * 100) / 100) : '—';
+                if (gradeEl) {
+                    const grade = touched && !bad ? gradeFor(total) : '';
+                    gradeEl.textContent = grade || '—';
+                    gradeEl.classList.toggle('is-fail', grade !== '' && grade === sheet.dataset.failGrade);
+                }
+            };
+            inputs.forEach((input) => input.addEventListener('input', update));
+            if (offered) offered.addEventListener('change', update);
+            update();
+        });
+    });
+    document.querySelectorAll('[data-autosubmit]').forEach((el) => el.addEventListener('change', () => el.form && el.form.submit()));
+}
+
 export function initSite() {
+    initSheets();
     initMobileNav();
     initDropdowns();
     initHero();

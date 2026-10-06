@@ -29,7 +29,7 @@ class SharedLayoutDataTest extends TestCase
     }
 
     #[Test]
-    public function a_teacher_can_render_the_score_entry_view_with_school_layout_data(): void
+    public function a_teacher_is_redirected_from_legacy_score_entry_to_staff_results(): void
     {
         $user = User::query()->create([
             'name' => 'Score Entry Teacher',
@@ -46,8 +46,12 @@ class SharedLayoutDataTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('results.entry'))
+            ->assertRedirect(route('staff.results'));
+
+        $this->actingAs($user)
+            ->get(route('staff.results'))
             ->assertOk()
-            ->assertSee('Enter assessment scores');
+            ->assertSee('Manage results');
     }
 
     #[Test]

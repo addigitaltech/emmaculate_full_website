@@ -52,7 +52,7 @@
     <div class="footer-bottom">
         <div class="site-container footer-bottom__inner">
             <p>&copy; {{ now()->year }} {{ $settings->school_name }}. All Rights Reserved.</p>
-            <p>Designed with <span class="heart" aria-label="love">&hearts;</span> for Education</p>
+            <p><a class="footer-admin" href="{{ url('/admin') }}">Admin login</a> &nbsp;&middot;&nbsp; Designed with <span class="heart" aria-label="love">&hearts;</span> for Education</p>
         </div>
     </div>
 </footer>

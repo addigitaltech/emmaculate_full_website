@@ -1,38 +1,40 @@
-# Emmaculate Academy — Public website redesign (update 1)
+# Emmaculate Academy — Update 2: admin, staff, student, parent and results portals
 
-Copy every file in this folder into the project root, keeping the same paths, then commit and push to `main`.
-Nothing here deletes a file. Results Portal, teacher/student/parent portals and payments are untouched.
+Copy every file into the project root (same paths), commit, push to `main`. No file is deleted. Includes the earlier "fix 1.1" if it was not applied yet (AppServiceProvider and DesignRefreshSeeder here are the latest versions of those files).
 
-## What changed
-- **Design system** (`resources/css/app.css`): navy / maroon / gold palette, serif headings, buttons, cards, bands, forms, tables, footer — taken from the approved mockups.
-- **Layout, header, footer**: top contact bar, sticky header, About/Academics/News dropdowns, "Portals" menu, mobile menu, footer with Quick Links / Portals / Contact / Newsletter, WhatsApp button, back-to-top.
-- **Pages restyled to the mockups**: Home, About, Mission/Vision/Pledge/Anthem (`/mission-vision`), History (`/history`), Academics, Admissions, News & Events, Gallery (filters + lightbox). Also restyled in the same system: Contact, FAQ, Leadership, Programme, Events, Announcements, Portals, generic pages.
-- **Everything stays editable in the admin** — nothing is hard-coded except fallback wording taken from the mockups:
-  - Logo, name, motto, phone, email, address, social links, WhatsApp, opening hours: *School settings*.
-  - Colours: *School settings → theme tokens*, keys `primary`, `secondary`, `accent` (hex like `#041433`).
-  - Page banner photos: *School settings → global settings*, key `hero_about`, `hero_history`, `hero_mission`, `hero_academics`, `hero_admissions`, `hero_news`, `hero_gallery`, `hero_contact`, `hero_leadership`, `hero_faq` (value = media-library ID).
-  - NEW **Website → Page sections**: core values, "why choose us", academics blocks, admission steps, academic levels, banner texts.
-  - NEW **Website → Newsletter subscribers** (read-only list). The footer / news-page newsletter forms now save emails.
-  - History page: in the page editor use the new block type **"Section title (starts a new card)"**; a Heading followed by a List becomes a name-list box; a Quote becomes the prayer note.
-- **Fixes found on the way**
-  - The old header used Alpine inline scripts, which the site's Content-Security-Policy blocks, so the mobile menu could not work. Replaced with plain JavaScript (`resources/js/site.js`).
-  - Page titles are no longer double-escaped (e.g. "News &amp;amp; Events").
-- **Deployment helpers**
-  - `Dockerfile` now runs `php artisan school:init` on every start: seeds roles/content on a brand-new database, applies the design content once, and can create the first Super Admin from environment variables (below).
-  - `.dockerignore` added.
+## What is new
+**Footer**
+- "Admin login" link in the footer of every public page (goes to /admin).
 
-## First admin account on Render (free plan has no shell)
-Set these in Render → Environment, deploy once, then DELETE all three:
-`SCHOOL_ADMIN_NAME`, `SCHOOL_ADMIN_EMAIL`, `SCHOOL_ADMIN_PASSWORD` (12+ characters with upper/lower case, a number and a symbol).
-It only creates an account if no Super Admin exists.
+**Staff results workflow (teachers, results admins, super admin)** — new area at /portal/staff/results, modelled on the school's reference system (PDF)
+- Pick session/term, then a class and arm -> student list with search, result-status pills, **Enter result** and **Print result** per student.
+- **Student result sheet**: every subject with offered tick, CA1/CA2/CA3/Exam, live total and grade, behaviour ratings (1-5), class-teacher remark and (admin only) principal remark.
+- **Subject score sheet** for teachers: a whole class for one assigned subject, four score columns, live totals and grades. Blank lines are ignored.
+- **Publish / unpublish** a class's results (results admin only; unpublish needs a written reason; both are audit-logged).
+- **Reports archive**: search by student name or ID, session and term.
+- All writes go through one service (`ResultSheetService`): teachers only for classes/subjects assigned to them, only the current term, never over a published line, maxima and grade bands enforced on the server.
+- Old one-student-at-a-time entry screen now redirects to the new area.
 
-## Not done yet / needs your decision
-- Site search icon from the mockups (no search feature exists yet).
-- Real phone numbers, email, social links and school statistics (the mockup numbers are placeholders; the site shows only what you enter).
-- FAQ answers (only the questions were in the mockup).
-- Public "upload your photos" on the gallery was replaced by a "Send us your photos" link to the contact form, so nothing public goes live unchecked.
-- The logo file reads "EMMACULATE - COLLEGE" while the mockups say "Emmaculate Academy". Please confirm which is correct.
+**Report card** (`/portal/reports/{student}/{term}`) — table-based so it prints and exports to PDF correctly
+- Subject table with CA columns (hidden when a component is 0), total, class average, highest, lowest, subject position, grade, remark.
+- Result summary (students in class, class position, arm position, total, average, subjects offered/passed/failed), class-performance bars, behaviour ratings, remarks, grading key, signature lines.
+- Staff may preview pending results (clearly marked); students and parents only ever see **published** results, only their own / linked children. Honours the existing "gate results behind fees" setting.
 
-## Verified / not verified
-Verified: every page renders in an offline preview at desktop and phone width with no horizontal overflow; menu, hero slider, gallery filter and lightbox behave.
-NOT verified: this was prepared without a PHP runtime, so the Laravel code has not been executed. See `MANUS_PROMPT.md` for the checks to run before pushing.
+**Dashboards**
+- Student: profile + list of published report cards. Parent: each linked child with report cards. Teacher: assigned classes/subjects + score sheets. Admin: pending-results count and shortcuts. Fee/payment sections are unchanged.
+
+**Admin console (Filament)**
+- Branded with the school logo/favicon and colours; dashboard now has the counts from the reference system (students, teachers, classes, arms, subjects, results awaiting publication) plus teacher and class tables.
+- Sidebar shortcuts: Manage results, Reports archive, View website.
+- Students: **Import from CSV** (sample: `resources/docs/students-import-sample.csv`), class/arm/status filters, Enter/Print result buttons.
+- Behaviour traits (Attendance, Attentiveness, Honesty, Industriousness, Initiative, Neatness, Relationship with others, Handwriting, Punctuality) are seeded once; editable under Results.
+
+**Fixes**: /login and password pages no longer error (layout data supplied); logo/favicon/description filled when empty; WhatsApp button hidden on portal pages; home announcements link fixed.
+
+## Settings to confirm in the admin (School settings)
+- Score split. Default is **CA 40 + Exam 60**. The PDF sample uses CA1/CA2/CA3 = 10 each + Exam 70: set 10 / 10 / 10 / 70 if that is your format. Sheets and report adapt automatically.
+- Pass percentage (default 40; the PDF sample shows 50).
+- Create the academic session + terms (Results > Academic sessions / terms) before staff can enter results; classes, arms, subjects and teacher assignments must exist too.
+
+## Tests added
+`tests/Feature/StaffResultsTest.php`, `StudentCsvImporterTest.php`; `ExampleTest.php` updated for the new home page text.

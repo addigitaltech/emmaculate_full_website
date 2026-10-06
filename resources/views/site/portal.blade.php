@@ -8,7 +8,7 @@
         @forelse($portalLinks as $portalLink)
             <article class="programme" style="flex-direction:column">
                 <div class="programme__body" style="width:100%">
-                <div style="display:flex;justify-content:space-between;gap:.8rem;width:100%"><h2 class="h3">{{ $portalLink->title }}</h2><span class="chip{{ $portalLink->isLive() ? '' : ' chip--soft' }}" style="align-self:flex-start">{{ $portalLink->isLive() ? 'Live' : 'Coming Soon' }}</span></div>
+                    <div style="display:flex;justify-content:space-between;gap:.8rem;width:100%"><h2 class="h3">{{ $portalLink->title }}</h2><span class="chip{{ $portalLink->isLive() ? '' : ' chip--soft' }}" style="align-self:flex-start">{{ $portalLink->isLive() ? 'Live' : 'Coming Soon' }}</span></div>
                     @if($portalLink->description)<p>{{ $portalLink->description }}</p>@endif
                     @if($portalLink->isLive())<a class="btn btn--maroon btn--sm" href="{{ $portalLink->url }}">Open portal <x-site-icon name="arrow" /></a>@else<span class="btn btn--outline btn--sm" aria-disabled="true" style="opacity:.6;cursor:not-allowed">Coming Soon</span>@endif
                 </div>

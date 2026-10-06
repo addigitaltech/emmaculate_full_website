@@ -60,7 +60,7 @@
     @endif
     <main id="main-content">@yield('content')</main>
     @include('site.partials.footer')
-    @if(!empty($whatsappUrl))
+    @if(!empty($whatsappUrl) && ! \Illuminate\Support\Str::startsWith($currentPath ?? '', ['portal', 'login', 'forgot-password', 'reset-password']))
         <a class="fab-whatsapp" href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp"><x-site-icon name="whatsapp" /><span>Chat<br>with us</span></a>
     @endif
     <button type="button" class="fab-top" data-back-to-top aria-label="Back to top"><x-site-icon name="arrowUp" /></button>

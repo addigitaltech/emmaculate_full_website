@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicTerm;
 use App\Models\AuditLog;
 use App\Models\FooterSection;
 use App\Models\NavigationItem;
@@ -53,11 +54,15 @@ class PortalController extends Controller
         $fees = collect();
         $activity = collect();
         $pendingResults = collect();
+        $reportTerms = collect();
+        $childTerms = [];
+        $pendingTotal = 0;
 
         if ($user->hasRole('Student')) {
             $kind = 'student';
             $profile = $user->studentProfile()->with(['schoolClass', 'arm'])->first();
             if ($profile) {
+                $reportTerms = $this->termsWithPublishedResults([$profile->id])[$profile->id] ?? collect();
                 $results = Result::published()->where('student_id', $profile->id)->with(['subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(30)->get();
                 $fees = StudentFeeAssignment::query()->where('student_id', $profile->id)->whereIn('status', ['unpaid', 'overdue'])->with('feeType')->orderBy('due_date')->get();
                 $payments = PaymentTransaction::query()->where('student_id', $profile->id)->with(['feeAssignment.feeType', 'receipt'])->whereIn('status', ['successful', 'pending', 'failed'])->latest()->limit(10)->get();
@@ -67,6 +72,7 @@ class PortalController extends Controller
             $profile = $user->parentProfile()->with(['students.schoolClass', 'students.arm'])->first();
             $children = $profile?->students ?? collect();
             $ids = $children->modelKeys();
+            $childTerms = $this->termsWithPublishedResults($ids);
             $results = Result::published()->whereIn('student_id', $ids)->with(['student', 'subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(50)->get();
             $fees = StudentFeeAssignment::query()->whereIn('student_id', $ids)->whereIn('status', ['unpaid', 'overdue'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();
             $payments = PaymentTransaction::query()->whereIn('student_id', $ids)->with(['student', 'feeAssignment.feeType', 'receipt'])->whereIn('status', ['successful', 'pending', 'failed'])->latest()->limit(20)->get();
@@ -82,7 +88,7 @@ class PortalController extends Controller
                 $activity = AuditLog::query()->latest('created_at')->with('actor')->limit(8)->get();
             }
             if ($user->can('publish results')) {
-                $pendingResults = Result::query()->whereIn('status', ['pending', 'draft'])->with(['student', 'subject', 'academicSession', 'academicTerm'])->latest()->limit(30)->get();
+                $pendingTotal = Result::query()->whereIn('status', ['pending', 'draft'])->count();
             }
             if ($user->can('manage payments')) {
                 $payments = PaymentTransaction::query()->with(['student', 'feeAssignment.feeType', 'receipt'])->latest()->limit(20)->get();
@@ -97,6 +103,29 @@ class PortalController extends Controller
             })
             ->map(fn (PaymentGatewayConfig $provider) => ['driver' => $provider->driver, 'name' => $provider->display_name])->values();
 
-        return compact('user', 'kind', 'profile', 'results', 'children', 'assignments', 'payments', 'fees', 'gatewayOptions', 'activity', 'pendingResults');
+        return compact('user', 'kind', 'profile', 'results', 'children', 'assignments', 'payments', 'fees', 'gatewayOptions', 'activity', 'pendingResults', 'reportTerms', 'childTerms', 'pendingTotal');
+    }
+
+    /**
+     * Terms that have at least one published result, per student, newest first.
+     *
+     * @param  array<int, int|string>  $studentIds
+     * @return array<int|string, \Illuminate\Support\Collection<int, AcademicTerm>>
+     */
+    private function termsWithPublishedResults(array $studentIds): array
+    {
+        if ($studentIds === []) {
+            return [];
+        }
+        $pairs = Result::published()->whereIn('student_id', $studentIds)->get(['student_id', 'academic_term_id'])
+            ->unique(fn ($row) => $row->student_id.'-'.$row->academic_term_id);
+        $terms = AcademicTerm::query()->with('session')->whereIn('id', $pairs->pluck('academic_term_id')->unique())
+            ->orderByDesc('academic_session_id')->orderByDesc('sequence')->get()->keyBy('id');
+        $byStudent = [];
+        foreach ($studentIds as $id) {
+            $byStudent[$id] = $pairs->where('student_id', $id)->map(fn ($row) => $terms->get($row->academic_term_id))->filter()->sortByDesc(fn ($term) => ($term->academic_session_id * 10) + $term->sequence)->values();
+        }
+
+        return $byStudent;
     }
 }

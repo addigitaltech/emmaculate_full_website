@@ -50,7 +50,23 @@ class StudentResource extends AuthorizedResource
             Tables\Columns\TextColumn::make('user.email')->label('Portal account')->toggleable(),
             Tables\Columns\TextColumn::make('status')->badge()->sortable(),
             Tables\Columns\TextColumn::make('admission_date')->date()->sortable()->toggleable(),
-        ])->actions([Tables\Actions\EditAction::make()])->bulkActions([]);
+        ])->filters([
+            Tables\Filters\SelectFilter::make('school_class_id')->label('Class')->relationship('schoolClass', 'name'),
+            Tables\Filters\SelectFilter::make('arm_id')->label('Arm')->relationship('arm', 'name'),
+            Tables\Filters\SelectFilter::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive', 'graduated' => 'Graduated', 'transferred' => 'Transferred'])->default('active'),
+        ])->actions([
+            Tables\Actions\Action::make('enterResult')->label('Enter result')->icon('heroicon-o-pencil-square')->color('success')
+                ->url(fn (Student $record) => route('staff.results.student', $record))
+                ->visible(fn () => (bool) auth()->user()?->can('manage results')),
+            Tables\Actions\Action::make('printResult')->label('Print result')->icon('heroicon-o-printer')->color('info')
+                ->url(function (Student $record) {
+                    $term = \App\Models\AcademicTerm::query()->where('is_current', true)->first();
+
+                    return $term ? route('reports.show', ['student' => $record->id, 'term' => $term->id]) : null;
+                }, shouldOpenInNewTab: true)
+                ->visible(fn () => (bool) auth()->user()?->can('manage results')),
+            Tables\Actions\EditAction::make(),
+        ])->bulkActions([]);
     }
 
     public static function getRelations(): array { return []; }

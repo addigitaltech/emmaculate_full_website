@@ -1,20 +1,93 @@
 @extends('site.layout')
 @section('title', 'Portal Dashboard | '.$settings->short_name)
 @section('content')
-<section class="bg-white"><div class="site-container py-10 sm:py-14"><div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-[.16em] text-[var(--brand-600)]">Secure School Portal</p><h1 class="mt-2 font-display text-4xl font-semibold text-[var(--brand-800)]">Welcome, {{ $user->name }}</h1><p class="mt-2 text-sm text-[var(--ink-soft)]">Account: {{ ucfirst($kind) }}</p></div><form action="{{ route('logout') }}" method="post">@csrf<button class="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--brand-800)]">Sign out</button></form></div>
+<section class="portal-head">
+    <div class="site-container portal-head__inner">
+        <div>
+            <h1>Welcome, {{ $user->name }}</h1>
+            <p>{{ ['student' => 'Student portal', 'parent' => 'Parent portal', 'teacher' => 'Staff portal', 'admin' => 'Administration', 'account' => 'School portal'][$kind] ?? 'School portal' }} &middot; Account: {{ ucfirst($kind) }}</p>
+        </div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            @if($kind === 'admin' && ($user->can('manage website content') || $user->can('manage results') || $user->can('manage payments') || $user->can('manage students')))<a class="btn btn--ghost-light" href="{{ url('/admin') }}">Admin console</a>@endif
+            <form method="post" action="{{ route('logout') }}">@csrf<button type="submit" class="btn btn--ghost-light">Sign out</button></form>
+        </div>
+    </div>
+</section>
+@if(session('success'))<div class="site-container" style="margin-top:1rem"><div role="status" class="alert alert--ok">{{ session('success') }}</div></div>@endif
+<section class="portal-body"><div class="site-container">
 @if($kind === 'student')
-    @if($profile)<div class="mt-7 rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-5"><p><strong>Student number:</strong> {{ $profile->student_number }}</p><p><strong>Class:</strong> {{ $profile->schoolClass?->name ?? 'Not assigned' }} @if($profile->arm) · {{ $profile->arm->name }}@endif</p></div>@endif
-    <section class="mt-9"><h2 class="font-display text-2xl font-semibold text-[var(--brand-800)]">Published results</h2>@if($results->isEmpty())<p class="mt-4 rounded-lg border border-dashed border-[var(--border)] p-5 text-sm text-[var(--ink-soft)]">No published results are available for this account yet.</p>@else<div class="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]"><table class="w-full min-w-[680px] text-left text-sm"><thead class="bg-[var(--surface-alt)]"><tr><th class="p-3">Session</th><th class="p-3">Term</th><th class="p-3">Subject</th><th class="p-3">Total</th><th class="p-3">Grade</th><th class="p-3">Report</th></tr></thead><tbody>@foreach($results as $result)<tr class="border-t border-[var(--border)]"><td class="p-3">{{ $result->academicSession?->name }}</td><td class="p-3">{{ $result->academicTerm?->name }}</td><td class="p-3">{{ $result->subject?->name }}</td><td class="p-3">{{ $result->total_score }}</td><td class="p-3">{{ $result->grade ?? '—' }}</td><td class="p-3"><a class="font-semibold text-[var(--brand-700)] underline" href="{{ route('results.report', $result) }}">View report card</a></td></tr>@endforeach</tbody></table></div>@endif</section>
+    @if($profile)
+    <div class="panel"><div class="panel__body student-chip">
+        @if($profile->photo)<img src="{{ $profile->photo->url() }}" alt="" width="64" height="64">@else<span class="student-chip__ph">{{ strtoupper(substr($profile->first_name, 0, 1)) }}</span>@endif
+        <div><strong style="font-size:1.15rem">{{ $profile->fullName() }}</strong><div class="muted" style="font-size:.9rem">{{ $profile->student_number }} &middot; {{ $profile->schoolClass?->name ?? 'Class not assigned' }}@if($profile->arm) ({{ $profile->arm->name }})@endif</div></div>
+    </div></div>
+    @endif
+    <div class="panel">
+        <div class="panel__head"><h2>My report cards</h2></div>
+        <div class="panel__body">
+            @if($reportTerms->isEmpty())
+                <p class="empty-state">No results have been published for you yet. They will appear here once the school publishes them.</p>
+            @else
+                <ul class="report-list">@foreach($reportTerms as $reportTerm)<li><a href="{{ route('reports.show', ['student' => $profile->id, 'term' => $reportTerm->id]) }}" target="_blank" rel="noopener"><span>{{ $reportTerm->session?->name }} &middot; {{ $reportTerm->name }}</span><span class="link-action link-action--blue" style="margin:0">View / print</span></a></li>@endforeach</ul>
+            @endif
+        </div>
+    </div>
 @elseif($kind === 'parent')
-    <section class="mt-8"><h2 class="font-display text-2xl font-semibold text-[var(--brand-800)]">Linked children</h2>@if($children->isEmpty())<p class="mt-4 rounded-lg border border-dashed border-[var(--border)] p-5 text-sm text-[var(--ink-soft)]">No student profiles are linked to this parent account. Please contact the school office.</p>@else<div class="mt-4 grid gap-4 md:grid-cols-2">@foreach($children as $child)<article class="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-5"><h3 class="font-display text-xl font-semibold text-[var(--brand-800)]">{{ $child->fullName() }}</h3><p class="mt-1 text-sm text-[var(--ink-soft)]">{{ $child->student_number }} · {{ $child->schoolClass?->name ?? 'Class not assigned' }} @if($child->arm) · {{ $child->arm->name }}@endif</p></article>@endforeach</div>@endif</section>
-    <section class="mt-9"><h2 class="font-display text-2xl font-semibold text-[var(--brand-800)]">Linked children’s published results</h2>@if($results->isEmpty())<p class="mt-4 rounded-lg border border-dashed border-[var(--border)] p-5 text-sm text-[var(--ink-soft)]">No published results are available for linked children yet.</p>@else<div class="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]"><table class="w-full min-w-[740px] text-left text-sm"><thead class="bg-[var(--surface-alt)]"><tr><th class="p-3">Student</th><th class="p-3">Session</th><th class="p-3">Term</th><th class="p-3">Subject</th><th class="p-3">Total</th><th class="p-3">Grade</th><th class="p-3">Report</th></tr></thead><tbody>@foreach($results as $result)<tr class="border-t border-[var(--border)]"><td class="p-3">{{ $result->student?->fullName() }}</td><td class="p-3">{{ $result->academicSession?->name }}</td><td class="p-3">{{ $result->academicTerm?->name }}</td><td class="p-3">{{ $result->subject?->name }}</td><td class="p-3">{{ $result->total_score }}</td><td class="p-3">{{ $result->grade ?? '—' }}</td><td class="p-3"><a class="font-semibold text-[var(--brand-700)] underline" href="{{ route('results.report', $result) }}">View</a></td></tr>@endforeach</tbody></table></div>@endif</section>
+    @if($children->isEmpty())
+        <p class="empty-state">No student profiles are linked to this parent account. Please contact the school office.</p>
+    @else
+        @foreach($children as $child)
+            <div class="panel">
+                <div class="panel__head"><div class="student-chip">@if($child->photo)<img src="{{ $child->photo->url() }}" alt="" width="64" height="64">@else<span class="student-chip__ph">{{ strtoupper(substr($child->first_name, 0, 1)) }}</span>@endif<div><h2>{{ $child->fullName() }}</h2><span class="muted" style="font-size:.88rem">{{ $child->student_number }} &middot; {{ $child->schoolClass?->name ?? 'Class not assigned' }}@if($child->arm) ({{ $child->arm->name }})@endif</span></div></div></div>
+                <div class="panel__body">
+                    @php($terms = $childTerms[$child->id] ?? collect())
+                    @if($terms->isEmpty())
+                        <p class="muted" style="margin:0">No published results yet.</p>
+                    @else
+                        <ul class="report-list">@foreach($terms as $reportTerm)<li><a href="{{ route('reports.show', ['student' => $child->id, 'term' => $reportTerm->id]) }}" target="_blank" rel="noopener"><span>{{ $reportTerm->session?->name }} &middot; {{ $reportTerm->name }}</span><span class="link-action link-action--blue" style="margin:0">View / print</span></a></li>@endforeach</ul>
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    @endif
 @elseif($kind === 'teacher')
-    <section class="mt-8"><h2 class="font-display text-2xl font-semibold text-[var(--brand-800)]">Assigned classes &amp; subjects</h2>@if($assignments->isEmpty())<p class="mt-4 rounded-lg border border-dashed border-[var(--border)] p-5 text-sm text-[var(--ink-soft)]">No active class/subject assignments are linked to this teacher account.</p>@else<div class="mt-4 grid gap-4 md:grid-cols-2">@foreach($assignments as $assignment)<article class="rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] p-5"><h3 class="font-display text-xl font-semibold text-[var(--brand-800)]">{{ $assignment->schoolClass?->name }} @if($assignment->arm) · {{ $assignment->arm->name }}@endif</h3><p class="mt-1 text-sm text-[var(--ink-soft)]">{{ $assignment->subject?->name }}</p></article>@endforeach</div><a href="{{ route('results.entry') }}" class="mt-6 inline-flex rounded-md bg-[var(--brand-700)] px-5 py-3 text-sm font-semibold text-white">Enter assessment scores</a>@endif</section>
+    <div class="panel">
+        <div class="panel__head"><h2>My classes and subjects</h2><a class="btn btn--maroon btn--sm" href="{{ route('staff.results') }}">Manage results</a></div>
+        <div class="panel__body">
+            @if($assignments->isEmpty())
+                <p class="empty-state">No class or subject has been assigned to this account yet. Please contact the school office.</p>
+            @else
+                <div class="class-grid">
+                    @foreach($assignments as $assignment)
+                        <a class="panel class-card" style="text-decoration:none;color:inherit;margin:0" href="{{ route('staff.results.subject', $assignment) }}">
+                            <h3>{{ $assignment->subject?->name }}</h3>
+                            <span class="muted">{{ $assignment->schoolClass?->name }}@if($assignment->arm) &middot; {{ $assignment->arm->name }}@endif</span>
+                            <span class="link-action link-action--green" style="margin:.7rem 0 0">Open score sheet &rarr;</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+            <p style="margin:1.2rem 0 0"><a class="link-more" href="{{ route('staff.results.archive') }}">Reports archive &rarr;</a></p>
+        </div>
+    </div>
 @else
-    <section class="mt-8"><h2 class="font-display text-2xl font-semibold text-[var(--brand-800)]">Administration</h2><p class="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--ink-soft)]">Management tools are limited to permissions granted by the school administrator. Sensitive roles and actions are not available to ordinary accounts.</p><div class="mt-5 flex flex-wrap gap-3">@if($user->can('manage website content') || $user->can('manage results') || $user->can('manage payments'))<a href="{{ url('/admin') }}" class="rounded-md bg-[var(--brand-700)] px-5 py-3 text-sm font-semibold text-white">Open management console</a>@endif@if($user->can('enter assigned results'))<a href="{{ route('results.entry') }}" class="rounded-md border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--brand-800)]">Enter scores</a>@endif</div>
-    @if($user->can('publish results') && isset($pendingResults) && $pendingResults->isNotEmpty())<h3 class="mt-9 font-display text-xl font-semibold text-[var(--brand-800)]">Pending result review</h3><div class="mt-3 space-y-3">@foreach($pendingResults as $pending)<div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] p-4 text-sm"><span>{{ $pending->student?->fullName() }} · {{ $pending->subject?->name }} · {{ $pending->academicTerm?->name }} · {{ $pending->total_score }} ({{ $pending->grade ?? 'N/O' }})</span><form method="post" action="{{ route('results.publish', $pending) }}" data-confirm="Publish this result to the student and linked parent portal?">@csrf<button class="rounded bg-[var(--brand-700)] px-4 py-2 font-semibold text-white">Publish result</button></form></div>@endforeach</div>@endif
-    @if($activity->isNotEmpty())<h3 class="mt-9 font-display text-xl font-semibold text-[var(--brand-800)]">Recent audit events</h3><ul class="mt-3 space-y-2">@foreach($activity as $event)<li class="rounded border border-[var(--border)] p-3 text-sm"><strong>{{ $event->event }}</strong> · {{ $event->created_at?->format('M j, Y H:i') }}</li>@endforeach</ul>@endif
-    </section>
+    <div class="kpis">
+        @if($user->can('publish results'))<div class="kpi"><span>Results awaiting publication</span><strong>{{ $pendingTotal }}</strong></div>@endif
+    </div>
+    <div class="panel" style="margin-top:1.2rem">
+        <div class="panel__head"><h2>Administration</h2></div>
+        <div class="panel__body">
+            <p class="muted" style="margin-top:0">Tools shown here depend on the permissions granted to your account.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:.7rem">
+                @if($user->can('manage website content') || $user->can('manage results') || $user->can('manage payments') || $user->can('manage students'))<a class="btn btn--maroon" href="{{ url('/admin') }}">Open admin console</a>@endif
+                @if($user->can('manage results') || $user->can('enter assigned results'))<a class="btn btn--navy" href="{{ route('staff.results') }}">Manage results</a><a class="btn btn--outline" href="{{ route('staff.results.archive') }}">Reports archive</a>@endif
+            </div>
+        </div>
+    </div>
+    @if($activity->isNotEmpty())
+    <div class="panel"><div class="panel__head"><h2>Recent activity</h2></div><div class="panel__body"><ul style="margin:0;padding:0;list-style:none">@foreach($activity as $event)<li style="padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.9rem"><strong>{{ $event->event }}</strong> &middot; {{ $event->created_at?->format('M j, Y H:i') }}</li>@endforeach</ul></div></div>
+    @endif
+
 @endif
 
 @if(in_array($kind, ['student', 'parent'], true))

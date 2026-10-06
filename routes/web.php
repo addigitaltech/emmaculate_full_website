@@ -3,7 +3,9 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ResultsController;
+use App\Http\Controllers\StaffResultsController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SiteController;
 use Illuminate\Support\Facades\Route;
@@ -41,10 +43,22 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::get('/portal/dashboard', [PortalController::class, 'dashboard'])->name('portal.dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('/portal/results/entry', [ResultsController::class, 'entryForm'])->middleware('role:Teacher,Results Admin,Super Admin')->name('results.entry');
+    Route::get('/portal/results/entry', fn () => redirect()->route('staff.results'))->middleware('role:Teacher,Results Admin,Super Admin')->name('results.entry');
     Route::post('/portal/results/entry', [ResultsController::class, 'store'])->middleware('role:Teacher,Results Admin,Super Admin')->name('results.store');
     Route::post('/portal/results/{result}/publish', [ResultsController::class, 'publish'])->middleware('permission:publish results')->name('results.publish');
     Route::get('/portal/results/{result}/report', [ResultsController::class, 'report'])->name('results.report');
+    Route::get('/portal/reports/{student}/{term}', [ReportController::class, 'show'])->whereNumber(['student', 'term'])->name('reports.show');
+    Route::middleware('role:Teacher,Results Admin,Super Admin')->prefix('portal/staff')->name('staff.')->group(function (): void {
+        Route::get('/results', [StaffResultsController::class, 'home'])->name('results');
+        Route::get('/results/class', [StaffResultsController::class, 'students'])->name('results.class');
+        Route::get('/results/archive', [StaffResultsController::class, 'archive'])->name('results.archive');
+        Route::post('/results/publish', [StaffResultsController::class, 'publishClass'])->middleware('permission:publish results')->name('results.publish-class');
+        Route::post('/results/unpublish', [StaffResultsController::class, 'unpublishClass'])->middleware('permission:publish results')->name('results.unpublish-class');
+        Route::get('/results/student/{student}', [StaffResultsController::class, 'studentSheet'])->whereNumber('student')->name('results.student');
+        Route::post('/results/student/{student}', [StaffResultsController::class, 'saveStudentSheet'])->whereNumber('student')->name('results.student.save');
+        Route::get('/results/subject/{assignment}', [StaffResultsController::class, 'subjectSheet'])->whereNumber('assignment')->name('results.subject');
+        Route::post('/results/subject/{assignment}', [StaffResultsController::class, 'saveSubjectSheet'])->whereNumber('assignment')->name('results.subject.save');
+    });
     Route::post('/portal/fees/{assignment}/checkout/{gateway}', [PaymentController::class, 'checkout'])->where('gateway', 'paystack|flutterwave|moniepoint')->middleware('throttle:payment-initiation')->name('payments.checkout');
 });
 

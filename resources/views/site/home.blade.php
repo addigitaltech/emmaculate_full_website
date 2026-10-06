@@ -6,7 +6,7 @@
     <section class="note-bar-wrap" aria-label="Announcements" style="background:var(--cream);border-bottom:1px solid #f4d894">
         <div class="site-container" style="padding-block:.55rem">
             @foreach($announcements->take(1) as $announcement)
-                <p style="margin:0;font-size:.92rem;color:#4a3a12"><strong>{{ $announcement->title }}</strong> &mdash; {{ \Illuminate\Support\Str::limit(strip_tags((string) $announcement->body), 150) }} <a class="link-more" style="margin-left:.4rem" href="{{ route('announcements') }}">All announcements</a></p>
+                <p style="margin:0;font-size:.92rem;color:#4a3a12"><strong>{{ $announcement->title }}</strong> &mdash; {{ \Illuminate\Support\Str::limit(strip_tags((string) $announcement->body), 150) }} <a class="link-more" style="margin-left:.4rem" href="{{ route('announcements.index') }}">All announcements</a></p>
             @endforeach
         </div>
     </section>
@@ -106,8 +106,8 @@
 
 @if(!empty($stats))
     <section class="section--tight">
-            <div class="site-container">
-                <div class="stats">
+        <div class="site-container">
+            <div class="stats">
                 @php
                     $statIcons = ['cap', 'users', 'user', 'building', 'award'];
                 @endphp
@@ -143,10 +143,10 @@
 @endif
 
 <section class="section">
-    <div class="site-container grid-2" style="align-items:start">
+        <div class="site-container grid-2" style="align-items:start">
         <div class="card card--pad">
             <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><h2 class="h2" style="font-size:1.5rem">News &amp; Events</h2><a class="link-more" href="{{ route('news.index') }}">View all</a></div>
-                @forelse($news as $post)
+            @forelse($news as $post)
                 @php
                     $cover = $post->coverImage?->url();
                 @endphp

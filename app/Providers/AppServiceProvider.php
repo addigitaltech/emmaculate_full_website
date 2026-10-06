@@ -32,9 +32,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Result::class, ResultPolicy::class);
-        // The sign-in pages and score entry extend the site layout but their controllers do not pass the
-        // school settings, navigation or footer, which made /login return a server error. Supply them here.
-        View::composer(['auth.*', 'portal.score-entry'], function ($view): void {
+
+        // Auth and staff views extend the public layout but their controllers do not all pass these values.
+        View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*'], function ($view): void {
             $data = $view->getData();
             $view->with([
                 'settings' => $data['settings'] ?? SchoolSettings::current(),
@@ -42,8 +42,10 @@ class AppServiceProvider extends ServiceProvider
                 'footerSections' => $data['footerSections'] ?? FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
             ]);
         });
+
         View::composer('site.layout', function ($view): void {
-            $settings = $view->getData()['settings'] ?? SchoolSettings::current();
+            $data = $view->getData();
+            $settings = $data['settings'] ?? SchoolSettings::current();
             $icons = ['facebook', 'twitter', 'instagram', 'youtube', 'tiktok', 'linkedin', 'whatsapp'];
             $social = [];
             foreach (($settings->social_links ?? []) as $network => $url) {
@@ -58,12 +60,13 @@ class AppServiceProvider extends ServiceProvider
                 $digits = '234'.substr($digits, 1);
             }
             $view->with([
-                'portalLinks' => $view->getData()['portalLinks'] ?? PortalLink::query()->publiclyVisible()->get(),
+                'portalLinks' => $data['portalLinks'] ?? PortalLink::query()->publiclyVisible()->get(),
                 'socialLinks' => $social,
                 'whatsappUrl' => strlen($digits) >= 10 ? 'https://wa.me/'.$digits : null,
                 'currentPath' => trim(request()->path(), '/'),
             ]);
         });
+
         RateLimiter::for('contact', fn (Request $request) => Limit::perMinute(5)->by((string) $request->ip()));
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
         RateLimiter::for('payment-initiation', fn (Request $request) => Limit::perMinute(8)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));

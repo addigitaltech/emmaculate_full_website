@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Website\Support\SiteSections;
+use App\Models\AffectiveTrait;
 use App\Models\CmsPage;
 use App\Models\CmsSection;
 use App\Models\FooterSection;
@@ -36,11 +37,34 @@ class DesignRefreshSeeder extends Seeder
         $this->navigation($firstRun);
         $this->heroSlide($firstRun);
 
+        $this->once('results_defaults_2026_10', $settings, fn () => $this->affectiveTraits());
+
         if ($firstRun) {
             $this->history();
             $global = is_array($settings->global_settings) ? $settings->global_settings : [];
             $global[self::MARKER] = now()->toDateString();
             $settings->forceFill(['global_settings' => $global])->save();
+        }
+    }
+
+    /** Run a block a single time, remembered in the global settings so admin deletions are respected. */
+    private function once(string $key, SchoolSettings $settings, callable $callback): void
+    {
+        $settings->refresh();
+        $global = is_array($settings->global_settings) ? $settings->global_settings : [];
+        if (filled($global[$key] ?? null)) {
+            return;
+        }
+        $callback();
+        $global[$key] = now()->toDateString();
+        $settings->forceFill(['global_settings' => $global])->save();
+    }
+
+    private function affectiveTraits(): void
+    {
+        $traits = ['Attendance', 'Attentiveness', 'Honesty', 'Industriousness', 'Initiative', 'Neatness', 'Relationship with others', 'Handwriting', 'Punctuality'];
+        foreach ($traits as $index => $name) {
+            AffectiveTrait::query()->firstOrCreate(['name' => $name], ['category' => 'affective', 'is_active' => true, 'sort_order' => $index + 1]);
         }
     }
 
