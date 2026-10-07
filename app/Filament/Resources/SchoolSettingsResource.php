@@ -45,6 +45,16 @@ class SchoolSettingsResource extends AuthorizedResource
                 Forms\Components\Toggle::make('payment_gate_results')->default(false)->helperText('Results are not payment-blocked by default.'),
                 Forms\Components\Select::make('result_access_mode')->options(['portal_only' => 'Authenticated student/parent portal'])->default('portal_only')->required(),
             ])->columns(4)->columnSpanFull(),
+            Forms\Components\Section::make('Portal access')
+                ->description('Choose who gets a portal. Staff accounts are never affected by these switches.')
+                ->schema([
+                    Forms\Components\Toggle::make('student_portal_enabled')->label('Student portal')->default(true)
+                        ->helperText('On: students sign in with their admission number and surname (or email). Off: students cannot sign in.'),
+                    Forms\Components\Toggle::make('parent_portal_enabled')->label('Parent portal')->default(true)
+                        ->helperText('On: parents sign in with their email and see linked children. Off: parents cannot sign in.'),
+                    Forms\Components\Toggle::make('public_result_check_enabled')->label('Check result with admission number and surname')->default(false)
+                        ->helperText('On: a public "Check Result" page lets students and parents view published results without signing in. Use it when the portals are switched off.'),
+                ])->columns(3)->columnSpanFull(),
             Forms\Components\TextInput::make('canonical_base_url')->url()->maxLength(2048),
             Forms\Components\KeyValue::make('global_settings')->keyLabel('Setting')->valueLabel('Value')->columnSpanFull(),
         ])->columns(2);

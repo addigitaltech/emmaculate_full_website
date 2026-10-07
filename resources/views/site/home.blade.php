@@ -55,9 +55,9 @@
 
 @if(count($portalLinks))
     @php
-        $quickMap = ['results' => ['navy', 'fileChart'], 'admission' => ['maroon', 'userPlus'], 'students' => ['navy', 'book'], 'staff' => ['gold', 'briefcase'], 'parents' => ['green', 'users'], 'teachers' => ['gold', 'briefcase'], 'school-staff' => ['gold', 'briefcase']];
+        $quickMap = ['results' => ['navy', 'fileChart'], 'admission' => ['maroon', 'userPlus'], 'students' => ['navy', 'book'], 'staff' => ['gold', 'briefcase'], 'parents' => ['green', 'users'], 'result-check' => ['gold', 'fileChart'], 'teachers' => ['gold', 'briefcase'], 'school-staff' => ['gold', 'briefcase']];
         $tones = ['navy', 'maroon', 'navy', 'gold', 'green'];
-        $quickLinks = $portalLinks->take(5);
+        $quickLinks = $portalLinks->take(6);
     @endphp
     <section class="quickbar" aria-label="Portals">
         <div class="site-container">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Auth\Support\PortalAccess;
 use App\Models\AuditLog;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,14 @@ class AuthController extends Controller
         if (! Auth::attempt(['email' => $email, 'password' => $credentials['password']], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
             return back()->withErrors(['email' => 'The supplied sign-in details could not be verified.'])->onlyInput('email');
+        }
+        $blocked = PortalAccess::blockedMessage($request->user());
+        if ($blocked !== null) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors(['email' => $blocked])->onlyInput('email');
         }
         RateLimiter::clear($key);
         $request->session()->regenerate();

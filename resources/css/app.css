@@ -675,6 +675,12 @@ dialog.lightbox::backdrop { background: rgba(2, 8, 20, .82); }
 .footer-admin { display: inline-flex; align-items: center; gap: .4rem; color: rgba(255, 255, 255, .85); text-decoration: none; }
 .footer-admin:hover { color: #fff; text-decoration: underline; }
 
+.auth-grid { display: grid; gap: 1.2rem; grid-template-columns: 1fr; }
+@media (min-width: 860px) { .auth-grid { grid-template-columns: 1fr 1fr; } }
+.upper-input { text-transform: uppercase; }
+.auth-card h2 { margin: 0; font: 600 1.35rem/1.2 var(--font-display); color: var(--navy-900); }
+.auth-card .hint { margin: .5rem 0 1rem; font-size: .88rem; color: var(--ink-soft); }
+.form-stack { display: grid; gap: 1rem; }
 .flash { width: min(100% - 2rem, 62rem); margin: 1rem auto 0; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -4,7 +4,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ResultCheckController;
 use App\Http\Controllers\ResultsController;
+use App\Http\Controllers\StudentAccessController;
 use App\Http\Controllers\StaffResultsController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SiteController;
@@ -31,16 +33,20 @@ Route::post('/contact', [SiteController::class, 'storeContact'])->middleware('th
 Route::post('/newsletter', [SiteController::class, 'subscribeNewsletter'])->middleware('throttle:contact')->name('newsletter.subscribe');
 Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->name('payments.return');
 
-Route::get('/portal', [PortalController::class, 'index'])->name('portal');
+Route::get('/portal', [PortalController::class, 'index'])->middleware('portal.enabled')->name('portal');
+Route::get('/check-result', [ResultCheckController::class, 'form'])->name('result-check');
+Route::post('/check-result', [ResultCheckController::class, 'lookup'])->middleware('throttle:auth')->name('result-check.lookup');
+Route::get('/check-result/{student}/{term}', [ResultCheckController::class, 'report'])->whereNumber(['student', 'term'])->middleware(['signed', 'throttle:auth'])->name('result-check.report');
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth')->name('login.submit');
+    Route::post('/student-login', [StudentAccessController::class, 'login'])->middleware('throttle:auth')->name('student.login');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:auth')->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth')->name('password.update');
 });
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'portal.enabled'])->group(function (): void {
     Route::get('/portal/dashboard', [PortalController::class, 'dashboard'])->name('portal.dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/portal/results/entry', fn () => redirect()->route('staff.results'))->middleware('role:Teacher,Results Admin,Super Admin')->name('results.entry');

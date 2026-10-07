@@ -62,7 +62,7 @@ table { border-collapse: collapse; width: 100%; }
 </head>
 <body>
 @if(! $isPdf)
-    <div class="toolbar"><button type="button" data-print>Print report</button> <a href="{{ route('reports.show', ['student' => $student->id, 'term' => $term->id]) }}?download=pdf">Download PDF</a></div>
+    <div class="toolbar"><button type="button" data-print>Print report</button> <a href="{{ $pdfUrl ?? (route('reports.show', ['student' => $student->id, 'term' => $term->id]).'?download=pdf') }}">Download PDF</a></div>
     @if($includeUnpublished && $hasPending)<div class="banner">Staff preview: this report includes results that are still <strong>pending</strong>. Students and parents only ever see published results.</div>@endif
 @endif
 <div class="sheet">

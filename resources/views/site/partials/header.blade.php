@@ -61,7 +61,7 @@
                             @if($portalLink->isLive())
                                 <a href="{{ $portalLink->url }}">{{ $portalLink->title }}</a>
                             @else
-                                <span class="dropdown__muted">{{ $portalLink->title }} <span class="dropdown__tag">Soon</span></span>
+                                <span class="dropdown__muted">{{ $portalLink->title }} <span class="dropdown__tag">Coming soon</span></span>
                             @endif
                         @endforeach
                     </div>

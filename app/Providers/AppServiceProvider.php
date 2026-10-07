@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Result::class, ResultPolicy::class);
 
         // Auth and staff views extend the public layout but their controllers do not all pass these values.
-        View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*'], function ($view): void {
+        View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*', 'site.check-result'], function ($view): void {
             $data = $view->getData();
             $view->with([
                 'settings' => $data['settings'] ?? SchoolSettings::current(),
@@ -59,8 +59,28 @@ class AppServiceProvider extends ServiceProvider
             if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
                 $digits = '234'.substr($digits, 1);
             }
+            $portalLinks = $data['portalLinks'] ?? PortalLink::query()->publiclyVisible()->get();
+            foreach ($portalLinks as $link) {
+                $off = ($link->key === 'students' && ! $settings->student_portal_enabled)
+                    || ($link->key === 'parents' && ! $settings->parent_portal_enabled);
+                if ($off) {
+                    $link->status = 'coming_soon';
+                }
+            }
+            if ($settings->public_result_check_enabled && ! $portalLinks->contains(fn (PortalLink $link) => $link->key === 'result-check')) {
+                $check = new PortalLink();
+                $check->forceFill([
+                    'key' => 'result-check',
+                    'title' => 'Check Result',
+                    'description' => 'Use your admission number and surname',
+                    'url' => '/check-result',
+                    'status' => 'live',
+                    'sort_order' => 0,
+                ]);
+                $portalLinks->push($check);
+            }
             $view->with([
-                'portalLinks' => $data['portalLinks'] ?? PortalLink::query()->publiclyVisible()->get(),
+                'portalLinks' => $portalLinks,
                 'socialLinks' => $social,
                 'whatsappUrl' => strlen($digits) >= 10 ? 'https://wa.me/'.$digits : null,
                 'currentPath' => trim(request()->path(), '/'),
