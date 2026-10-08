@@ -38,6 +38,6 @@ class SchoolSettings extends Model
 
     public static function current(): self
     {
-        return static::query()->orderBy('id')->first() ?? static::query()->create(['school_name' => 'Emmaculate Academy', 'short_name' => 'Emmaculate Academy', 'motto' => 'Determined to make a difference', 'ca1_max_score' => 40, 'ca2_max_score' => 0, 'ca3_max_score' => 0, 'exam_max_score' => 60, 'pass_percentage' => 40, 'highlight_fail_grade' => true, 'payment_gate_results' => false, 'result_access_mode' => 'portal_only']);
+        return \App\Support\SiteCache::remember('settings', 600, fn () => static::query()->orderBy('id')->first() ?? static::query()->create(['school_name' => 'Emmaculate Academy', 'short_name' => 'Emmaculate Academy', 'motto' => 'Determined to make a difference', 'ca1_max_score' => 40, 'ca2_max_score' => 0, 'ca3_max_score' => 0, 'exam_max_score' => 60, 'pass_percentage' => 40, 'highlight_fail_grade' => true, 'payment_gate_results' => false, 'result_access_mode' => 'portal_only']));
     }
 }

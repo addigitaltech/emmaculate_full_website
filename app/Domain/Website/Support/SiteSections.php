@@ -60,13 +60,13 @@ final class SiteSections
     public static function get(string $key): ?CmsSection
     {
         if (self::$cache === null) {
-            self::$cache = CmsSection::query()
+            self::$cache = \App\Support\SiteCache::remember('sections', 600, fn () => CmsSection::query()
                 ->whereNull('page_id')
                 ->where('is_visible', true)
                 ->orderBy('sort_order')
                 ->get()
                 ->keyBy('section_key')
-                ->all();
+                ->all());
         }
 
         return self::$cache[$key] ?? null;

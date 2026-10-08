@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Website\Support\PageBlocks;
 use App\Domain\Website\Support\SiteSections;
+use App\Support\SiteCache;
 use App\Models\AcademicProgramme;
 use App\Models\AdmissionApplication;
 use App\Models\AdmissionsSettings;
@@ -47,20 +48,23 @@ class SiteController extends Controller
         'page' => 'migrated-images/students-reading.jpg',
     ];
 
-    private ?SchoolSettings $settingsCache = null;
-
     public function home(): View
     {
-        $about = CmsPage::published()->where('slug', 'about')->first();
+        $data = SiteCache::remember('home', 300, function (): array {
+            $about = CmsPage::published()->where('slug', 'about')->first();
 
-        return $this->render('site.home', [
-            'slides' => HeroSlide::query()->where('is_enabled', true)->orderBy('sort_order')->get(),
-            'programmes' => AcademicProgramme::query()->where('is_published', true)->with('image')->orderBy('sort_order')->limit(3)->get(),
-            'news' => NewsPost::published()->with('coverImage')->orderByDesc('published_at')->limit(3)->get(),
-            'events' => SchoolEvent::published()->upcoming()->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get(),
-            'announcements' => Announcement::visibleNow()->with('image')->orderBy('sort_order')->orderByDesc('starts_at')->limit(3)->get(),
+            return [
+                'slides' => HeroSlide::query()->where('is_enabled', true)->with('image')->orderBy('sort_order')->get(),
+                'programmes' => AcademicProgramme::query()->where('is_published', true)->with('image')->orderBy('sort_order')->limit(3)->get(),
+                'news' => NewsPost::published()->with('coverImage')->orderByDesc('published_at')->limit(3)->get(),
+                'events' => SchoolEvent::published()->upcoming()->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get(),
+                'announcements' => Announcement::visibleNow()->with('image')->orderBy('sort_order')->orderByDesc('starts_at')->limit(3)->get(),
+                'aboutParagraphs' => $about ? PageBlocks::paragraphs($about->content_blocks ?? [], 2) : [],
+            ];
+        });
+
+        return $this->render('site.home', $data + [
             'stats' => $this->settings()->verified_stats ?? [],
-            'aboutParagraphs' => $about ? PageBlocks::paragraphs($about->content_blocks ?? [], 2) : [],
             'aboutImage' => asset('storage/migrated-images/students-reading.jpg'),
             'seoDescription' => $this->settings()->description,
         ]);
@@ -233,34 +237,36 @@ class SiteController extends Controller
 
     public function gallery(): View
     {
-        $albums = GalleryAlbum::query()->where('status', 'published')->with(['images.media'])->orderBy('sort_order')->get();
-        $categories = [];
-        $photos = [];
+        $built = SiteCache::remember('gallery', 300, function (): array {
+            $albums = GalleryAlbum::query()->where('status', 'published')->with(['images.media'])->orderBy('sort_order')->get();
+            $categories = [];
+            $photos = [];
 
-        foreach ($albums as $album) {
-            $count = 0;
-            foreach ($album->images as $image) {
-                $url = $image->media?->url() ?? ($image->image_path ? asset('storage/'.$image->image_path) : null);
-                if (! $url || count($photos) >= 150) {
-                    continue;
+            foreach ($albums as $album) {
+                $count = 0;
+                foreach ($album->images as $image) {
+                    $url = $image->media?->url() ?? ($image->image_path ? asset('storage/'.$image->image_path) : null);
+                    if (! $url || count($photos) >= 150) {
+                        continue;
+                    }
+                    $photos[] = [
+                        'url' => $url,
+                        'alt' => $image->alt_text ?: ($image->media?->alt_text ?: $album->title),
+                        'caption' => $image->caption ?: $album->title,
+                        'album' => $album->slug,
+                        'albumTitle' => $album->title,
+                    ];
+                    $count++;
                 }
-                $photos[] = [
-                    'url' => $url,
-                    'alt' => $image->alt_text ?: ($image->media?->alt_text ?: $album->title),
-                    'caption' => $image->caption ?: $album->title,
-                    'album' => $album->slug,
-                    'albumTitle' => $album->title,
-                ];
-                $count++;
+                if ($count > 0) {
+                    $categories[] = ['slug' => $album->slug, 'title' => $album->title, 'count' => $count];
+                }
             }
-            if ($count > 0) {
-                $categories[] = ['slug' => $album->slug, 'title' => $album->title, 'count' => $count];
-            }
-        }
 
-        return $this->render('site.gallery', [
-            'categories' => $categories,
-            'photos' => $photos,
+            return ['categories' => $categories, 'photos' => $photos];
+        });
+
+        return $this->render('site.gallery', $built + [
             'heroImage' => $this->heroUrl('gallery'),
             'seoDescription' => 'Photographs from the Emmaculate Academy community.',
         ]);
@@ -353,7 +359,7 @@ class SiteController extends Controller
 
     private function settings(): SchoolSettings
     {
-        return $this->settingsCache ??= SchoolSettings::current();
+        return SchoolSettings::current();
     }
 
     /**
@@ -409,9 +415,9 @@ class SiteController extends Controller
     {
         $base = [
             'settings' => $this->settings(),
-            'navigation' => NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get(),
-            'footerSections' => FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
-            'portalLinks' => PortalLink::query()->publiclyVisible()->get(),
+            'navigation' => SiteCache::remember('navigation', 600, fn () => NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get()),
+            'footerSections' => SiteCache::remember('footer', 600, fn () => FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get()),
+            'portalLinks' => SiteCache::remember('portal-links', 600, fn () => PortalLink::query()->publiclyVisible()->get()),
         ];
 
         return view($view, array_merge($base, $data));

@@ -27,6 +27,7 @@ class InitialiseSchool extends Command
         }
 
         $this->bootstrapAdmin();
+        \App\Support\SiteCache::flush();
 
         return self::SUCCESS;
     }

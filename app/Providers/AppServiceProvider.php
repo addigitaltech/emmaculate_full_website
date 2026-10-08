@@ -33,6 +33,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Result::class, ResultPolicy::class);
 
+        foreach ([\App\Models\SchoolSettings::class, \App\Models\NavigationItem::class, \App\Models\FooterSection::class, \App\Models\PortalLink::class, \App\Models\CmsPage::class, \App\Models\CmsSection::class, \App\Models\HeroSlide::class, \App\Models\AcademicProgramme::class, \App\Models\NewsPost::class, \App\Models\SchoolEvent::class, \App\Models\Announcement::class, \App\Models\GalleryAlbum::class, \App\Models\GalleryImage::class, \App\Models\MediaAsset::class, \App\Models\Faq::class, \App\Models\LeadershipProfile::class, \App\Models\AdmissionsSettings::class] as $cachedModel) {
+            $cachedModel::saved(fn () => \App\Support\SiteCache::flush());
+            $cachedModel::deleted(fn () => \App\Support\SiteCache::flush());
+        }
+
         // Auth and staff views extend the public layout but their controllers do not all pass these values.
         View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*', 'site.check-result'], function ($view): void {
             $data = $view->getData();
@@ -59,7 +64,7 @@ class AppServiceProvider extends ServiceProvider
             if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
                 $digits = '234'.substr($digits, 1);
             }
-            $portalLinks = $data['portalLinks'] ?? PortalLink::query()->publiclyVisible()->get();
+            $portalLinks = $data['portalLinks'] ?? \App\Support\SiteCache::remember('portal-links', 600, fn () => PortalLink::query()->publiclyVisible()->get());
             foreach ($portalLinks as $link) {
                 $off = ($link->key === 'students' && ! $settings->student_portal_enabled)
                     || ($link->key === 'parents' && ! $settings->parent_portal_enabled);
@@ -89,6 +94,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('contact', fn (Request $request) => Limit::perMinute(5)->by((string) $request->ip()));
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
+        RateLimiter::for('student-auth', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
+        RateLimiter::for('results', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
         RateLimiter::for('payment-initiation', fn (Request $request) => Limit::perMinute(8)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('payments-webhooks', fn (Request $request) => Limit::perMinute(120)->by((string) $request->ip()));
     }

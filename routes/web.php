@@ -35,12 +35,12 @@ Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->na
 
 Route::get('/portal', [PortalController::class, 'index'])->middleware('portal.enabled')->name('portal');
 Route::get('/check-result', [ResultCheckController::class, 'form'])->name('result-check');
-Route::post('/check-result', [ResultCheckController::class, 'lookup'])->middleware('throttle:auth')->name('result-check.lookup');
-Route::get('/check-result/{student}/{term}', [ResultCheckController::class, 'report'])->whereNumber(['student', 'term'])->middleware(['signed', 'throttle:auth'])->name('result-check.report');
+Route::post('/check-result', [ResultCheckController::class, 'lookup'])->middleware('throttle:results')->name('result-check.lookup');
+Route::get('/check-result/{student}/{term}', [ResultCheckController::class, 'report'])->whereNumber(['student', 'term'])->middleware(['signed', 'throttle:results'])->name('result-check.report');
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth')->name('login.submit');
-    Route::post('/student-login', [StudentAccessController::class, 'login'])->middleware('throttle:auth')->name('student.login');
+    Route::post('/student-login', [StudentAccessController::class, 'login'])->middleware('throttle:student-auth')->name('student.login');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:auth')->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');

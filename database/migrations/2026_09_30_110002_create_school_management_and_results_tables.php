@@ -124,7 +124,7 @@ return new class extends Migration
             $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->unique(['teacher_id', 'school_class_id', 'arm_id', 'subject_id'], 'teacher_assignment_unique');
-            $table->index(['teacher_id', 'school_class_id', 'subject_id']);
+            $table->index(['teacher_id', 'school_class_id', 'subject_id'], 'teacher_assign_teacher_class_subject_idx');
         });
 
         Schema::create('assessment_configs', function (Blueprint $table): void {
@@ -176,7 +176,7 @@ return new class extends Migration
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
             $table->unique(['student_id', 'subject_id', 'academic_session_id', 'academic_term_id'], 'student_result_unique');
-            $table->index(['school_class_id', 'arm_id', 'academic_session_id', 'academic_term_id', 'status']);
+            $table->index(['school_class_id', 'arm_id', 'academic_session_id', 'academic_term_id', 'status'], 'results_class_arm_session_term_status_idx');
         });
 
         Schema::create('affective_traits', function (Blueprint $table): void {

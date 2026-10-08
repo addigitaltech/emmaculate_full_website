@@ -31,7 +31,7 @@ return new class extends Migration
             $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
-            $table->index(['student_id', 'academic_session_id', 'academic_term_id']);
+            $table->index(['student_id', 'academic_session_id', 'academic_term_id'], 'sfa_student_session_term_idx');
         });
 
         Schema::create('payment_gateway_configs', function (Blueprint $table): void {
