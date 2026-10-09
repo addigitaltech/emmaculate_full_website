@@ -17,6 +17,10 @@ class AdminCspTest extends TestCase
         $response->assertOk();
 
         $policy = (string) $response->headers->get('Content-Security-Policy');
+        $directives = collect(explode(';', $policy))->map(fn (string $directive): string => trim($directive));
+        $workerDirective = $directives->first(fn (string $directive): bool => str_starts_with($directive, 'worker-src '));
+
+        $this->assertSame("worker-src 'self'", $workerDirective);
         $this->assertStringContainsString("script-src 'self';", $policy);
         $this->assertStringNotContainsString("'unsafe-eval'", $policy);
         $this->assertStringNotContainsString("'nonce-", $policy);
@@ -32,8 +36,10 @@ class AdminCspTest extends TestCase
         $policy = (string) $response->headers->get('Content-Security-Policy');
         $directives = collect(explode(';', $policy))->map(fn (string $directive): string => trim($directive));
         $scriptDirective = $directives->first(fn (string $directive): bool => str_starts_with($directive, 'script-src '));
+        $workerDirective = $directives->first(fn (string $directive): bool => str_starts_with($directive, 'worker-src '));
 
         $this->assertNotNull($scriptDirective);
+        $this->assertSame("worker-src 'self' blob:", $workerDirective);
         $this->assertStringContainsString("'unsafe-eval'", $scriptDirective);
         $this->assertStringNotContainsString("'unsafe-inline'", $scriptDirective);
         $this->assertStringContainsString('https://fonts.bunny.net', $policy);

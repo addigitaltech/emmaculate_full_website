@@ -22,6 +22,7 @@ class SecurityHeaders
         $scriptSrc = "'self'";
         $styleSrc = "'self' 'unsafe-inline' https://fonts.googleapis.com";
         $fontSrc = "'self' data: https://fonts.gstatic.com";
+        $workerSrc = "'self'";
 
         if ($isAdminPanel && $nonce !== null) {
             $contentType = (string) $response->headers->get('Content-Type', '');
@@ -45,9 +46,10 @@ class SecurityHeaders
             $scriptSrc .= " 'nonce-{$nonce}' 'unsafe-eval'";
             $styleSrc .= ' https://fonts.bunny.net';
             $fontSrc .= ' https://fonts.bunny.net';
+            $workerSrc .= ' blob:';
         }
 
-        $response->headers->set('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; script-src {$scriptSrc}; style-src {$styleSrc}; font-src {$fontSrc}; connect-src 'self'; form-action 'self' https:");
+        $response->headers->set('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; worker-src {$workerSrc}; script-src {$scriptSrc}; style-src {$styleSrc}; font-src {$fontSrc}; connect-src 'self'; form-action 'self' https:");
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
