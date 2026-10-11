@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class ContactMessageResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationLabel = 'Contact messages';
+    protected static ?string $navigationGroup = 'Admissions & messages';
     protected static ?string $model = ContactMessage::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-envelope';
     public static function form(Form $form): Form
     {
         return $form

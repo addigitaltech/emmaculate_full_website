@@ -12,10 +12,11 @@ use Filament\Tables\Table;
 class TeacherResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage teachers';
-    protected static ?string $navigationGroup = 'School Management';
+    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'Teachers';
+    protected static ?string $navigationGroup = 'People';
     protected static ?string $model = Teacher::class;
-    protected static ?string $navigationIcon = 'heroicon-o-user';
-
+    protected static ?string $navigationIcon = 'heroicon-o-identification';
     public static function form(Form $form): Form
     {
         return $form->schema([

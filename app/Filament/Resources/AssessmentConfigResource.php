@@ -18,10 +18,12 @@ use Filament\Tables\Table;
 class AssessmentConfigResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage academic structure';
-    protected static ?string $navigationGroup = 'School Management';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 91;
+    protected static ?string $navigationLabel = 'Assessment setup';
+    protected static ?string $navigationGroup = 'Academics setup';
     protected static ?string $model = AssessmentConfig::class;
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
-
     public static function form(Form $form): Form
     {
         return $form->schema([

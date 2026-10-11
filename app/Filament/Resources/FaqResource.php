@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class FaqResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationLabel = 'FAQs';
+    protected static ?string $navigationGroup = 'Admissions & messages';
     protected static ?string $model = Faq::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
     public static function form(Form $form): Form
     {
         return $form

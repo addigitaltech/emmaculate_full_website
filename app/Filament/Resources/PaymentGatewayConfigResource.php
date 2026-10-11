@@ -12,10 +12,11 @@ use Filament\Tables\Table;
 class PaymentGatewayConfigResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage payments';
-    protected static ?string $navigationGroup = 'Payments';
+    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationLabel = 'Payment gateways';
+    protected static ?string $navigationGroup = 'Fees & payments';
     protected static ?string $model = PaymentGatewayConfig::class;
-    protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-
+    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     public static function form(Form $form): Form
     {
         return $form->schema([

@@ -16,12 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class PaymentEventResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage payments';
-    protected static ?string $navigationGroup = 'Payments';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 94;
+    protected static ?string $navigationLabel = 'Payment events';
+    protected static ?string $navigationGroup = 'Fees & payments';
     protected static bool $readOnly = true;
     protected static ?string $model = PaymentEvent::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-bolt';
     public static function form(Form $form): Form
     {
         return $form

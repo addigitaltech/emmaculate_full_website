@@ -49,7 +49,8 @@ class SecurityHeaders
             $workerSrc .= ' blob:';
         }
 
-        $response->headers->set('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; worker-src {$workerSrc}; script-src {$scriptSrc}; style-src {$styleSrc}; font-src {$fontSrc}; connect-src 'self'; form-action 'self' https:");
+        $frameSrc = $isAdminPanel ? "'self'" : "'self' https://www.openstreetmap.org";
+        $response->headers->set('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; worker-src {$workerSrc}; script-src {$scriptSrc}; style-src {$styleSrc}; font-src {$fontSrc}; connect-src 'self'; form-action 'self' https:; frame-src {$frameSrc}");
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }

@@ -38,6 +38,7 @@ class DesignRefreshSeeder extends Seeder
         $this->heroSlide($firstRun);
 
         $this->once('results_defaults_2026_10', $settings, fn () => $this->affectiveTraits());
+        $this->once('identity_texts_2026_10', $settings, fn () => $this->identityTexts($settings));
 
         if ($firstRun) {
             $this->history();
@@ -58,6 +59,33 @@ class DesignRefreshSeeder extends Seeder
         $callback();
         $global[$key] = now()->toDateString();
         $settings->forceFill(['global_settings' => $global])->save();
+    }
+
+    /** Moves the mission, vision, pledge and anthem from the old page blocks into School profile, where they are easy to edit. */
+    private function identityTexts(SchoolSettings $settings): void
+    {
+        $page = CmsPage::query()->where('slug', 'mission-vision')->first();
+        if (! $page) {
+            return;
+        }
+        $groups = \App\Domain\Website\Support\PageBlocks::keyed(is_array($page->content_blocks) ? $page->content_blocks : []);
+        $settings->refresh();
+        $updates = [];
+        if (! filled($settings->mission) && ! empty($groups['mission']['paragraphs'][0])) {
+            $updates['mission'] = $groups['mission']['paragraphs'][0];
+        }
+        if (! filled($settings->vision) && ! empty($groups['vision']['paragraphs'][0])) {
+            $updates['vision'] = $groups['vision']['paragraphs'][0];
+        }
+        if (! filled($settings->pledge) && ! empty($groups['pledge']['items'])) {
+            $updates['pledge'] = implode("\n", $groups['pledge']['items']);
+        }
+        if (! filled($settings->anthem) && ! empty($groups['anthem']['items'])) {
+            $updates['anthem'] = implode("\n", $groups['anthem']['items']);
+        }
+        if ($updates !== []) {
+            $settings->forceFill($updates)->save();
+        }
     }
 
     private function affectiveTraits(): void

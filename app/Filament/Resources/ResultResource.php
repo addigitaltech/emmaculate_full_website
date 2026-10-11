@@ -16,12 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class ResultResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationLabel = 'Result records';
     protected static ?string $navigationGroup = 'Results';
     protected static bool $readOnly = true;
     protected static ?string $model = Result::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
     public static function form(Form $form): Form
     {
         return $form

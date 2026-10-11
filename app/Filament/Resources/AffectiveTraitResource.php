@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class AffectiveTraitResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
-    protected static ?string $navigationGroup = 'Results';
+    protected static ?int $navigationSort = 8;
+    protected static ?string $navigationLabel = 'Behaviour & skills list';
+    protected static ?string $navigationGroup = 'Academics setup';
     protected static ?string $model = AffectiveTrait::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-heart';
     public static function form(Form $form): Form
     {
         return $form

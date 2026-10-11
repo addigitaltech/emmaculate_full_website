@@ -12,11 +12,12 @@ use Filament\Tables\Table;
 class PortalLinkResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 6;
+    protected static ?string $navigationGroup = 'Homepage & menus';
     protected static ?string $navigationLabel = 'Portal links';
     protected static ?string $model = PortalLink::class;
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-top-right-on-square';
-
+    protected static ?string $navigationIcon = 'heroicon-o-link';
     public static function form(Form $form): Form
     {
         return $form->schema([

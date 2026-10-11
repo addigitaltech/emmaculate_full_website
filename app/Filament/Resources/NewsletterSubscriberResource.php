@@ -11,12 +11,12 @@ use Filament\Tables\Table;
 class NewsletterSubscriberResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationGroup = 'Admissions & messages';
     protected static bool $readOnly = true;
     protected static ?string $model = NewsletterSubscriber::class;
-    protected static ?string $navigationIcon = 'heroicon-o-envelope';
+    protected static ?string $navigationIcon = 'heroicon-o-at-symbol';
     protected static ?string $navigationLabel = 'Newsletter subscribers';
-
     public static function form(Form $form): Form
     {
         return $form->schema([]);

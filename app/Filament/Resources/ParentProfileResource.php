@@ -13,10 +13,11 @@ use Filament\Tables\Table;
 class ParentProfileResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage students';
-    protected static ?string $navigationGroup = 'School Management';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationLabel = 'Parents';
+    protected static ?string $navigationGroup = 'People';
     protected static ?string $model = ParentProfile::class;
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
-
+    protected static ?string $navigationIcon = 'heroicon-o-users';
     public static function form(Form $form): Form
     {
         return $form->schema([

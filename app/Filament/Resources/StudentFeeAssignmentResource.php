@@ -18,10 +18,11 @@ use Illuminate\Database\Eloquent\Model;
 class StudentFeeAssignmentResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage fees';
-    protected static ?string $navigationGroup = 'Payments';
+    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'Fees owed';
+    protected static ?string $navigationGroup = 'Fees & payments';
     protected static ?string $model = StudentFeeAssignment::class;
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-
     public static function form(Form $form): Form
     {
         return $form->schema([

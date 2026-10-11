@@ -12,12 +12,12 @@ class NewsPost extends Model
 
     protected $fillable = [
         'author_id', 'cover_image_id', 'title', 'slug', 'subtitle', 'excerpt', 'content', 'category', 'tags',
-        'status', 'is_featured', 'published_at', 'expires_at', 'seo_title', 'seo_description', 'social_image_id',
+        'status', 'is_featured', 'published_at', 'expires_at', 'seo_title', 'seo_description', 'social_image_id', 'send_email', 'notified_at',
     ];
 
     protected function casts(): array
     {
-        return ['tags' => 'array', 'is_featured' => 'boolean', 'published_at' => 'datetime', 'expires_at' => 'datetime'];
+        return ['tags' => 'array', 'is_featured' => 'boolean', 'published_at' => 'datetime', 'expires_at' => 'datetime', 'send_email' => 'boolean', 'notified_at' => 'datetime'];
     }
 
     public function scopePublished(Builder $query): Builder

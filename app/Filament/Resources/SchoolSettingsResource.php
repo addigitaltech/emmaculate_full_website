@@ -12,11 +12,13 @@ use Filament\Tables\Table;
 class SchoolSettingsResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage school settings';
-    protected static ?string $navigationGroup = 'Website';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 99;
+    protected static ?string $navigationLabel = 'Old settings';
+    protected static ?string $navigationGroup = 'System';
     protected static bool $singleton = true;
     protected static ?string $model = SchoolSettings::class;
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-
+    protected static ?string $navigationIcon = 'heroicon-o-cog';
     public static function form(Form $form): Form
     {
         return $form->schema([

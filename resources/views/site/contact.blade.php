@@ -1,6 +1,14 @@
 @extends('site.layout')
 @section('title', 'Contact | '.$settings->short_name)
 @section('description', $seoDescription ?? $settings->description)
+@php
+    $lat = null;
+    $lng = null;
+    if (filled($settings->gps_location) && preg_match('/^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/', (string) $settings->gps_location, $coords)) {
+        $lat = (float) $coords[1];
+        $lng = (float) $coords[2];
+    }
+@endphp
 @section('content')
 <x-page-hero eyebrow="Get in touch" title="Contact the School" lead="Send an enquiry and the school will respond using the contact details you provide." :image="$heroImage" :crumbs="[['Home', route('home')], ['Contact', null]]" />
 <section class="section">
@@ -29,4 +37,21 @@
         </div>
     </div>
 </section>
+@if($lat !== null && $lng !== null)
+<section class="section--tight">
+    <div class="site-container">
+        <div class="card" style="overflow:hidden">
+            <div class="panel__head"><h2 class="h3">Find us on the map</h2>
+                <span style="display:flex;gap:.6rem;flex-wrap:wrap">
+                    <a class="btn btn--navy btn--sm" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/dir/?api=1&amp;destination={{ $lat }},{{ $lng }}">Get directions</a>
+                    <a class="btn btn--outline btn--sm" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&amp;query={{ $lat }},{{ $lng }}">Open in Google Maps</a>
+                </span>
+            </div>
+            <iframe title="Map showing the school location" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                style="display:block;width:100%;height:380px;border:0"
+                src="https://www.openstreetmap.org/export/embed.html?bbox={{ $lng - 0.006 }}%2C{{ $lat - 0.004 }}%2C{{ $lng + 0.006 }}%2C{{ $lat + 0.004 }}&amp;layer=mapnik&amp;marker={{ $lat }}%2C{{ $lng }}"></iframe>
+        </div>
+    </div>
+</section>
+@endif
 @endsection

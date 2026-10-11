@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class AcademicSessionResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage academic structure';
-    protected static ?string $navigationGroup = 'School Management';
+    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Sessions';
+    protected static ?string $navigationGroup = 'Academics setup';
     protected static ?string $model = AcademicSession::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-calendar';
     public static function form(Form $form): Form
     {
         return $form

@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class AdmissionApplicationResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'Applications';
+    protected static ?string $navigationGroup = 'Admissions & messages';
     protected static ?string $model = AdmissionApplication::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-inbox-arrow-down';
     public static function form(Form $form): Form
     {
         return $form

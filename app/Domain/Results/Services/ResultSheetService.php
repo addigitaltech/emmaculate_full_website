@@ -99,17 +99,7 @@ final class ResultSheetService
     /** @return array{ca1: int, ca2: int, ca3: int, exam: int} */
     public function maxima(int $sessionId, int $termId, ?int $classId, int $subjectId): array
     {
-        $config = $classId
-            ? AssessmentConfig::query()
-                ->where('academic_session_id', $sessionId)
-                ->where('academic_term_id', $termId)
-                ->where('school_class_id', $classId)
-                ->where('subject_id', $subjectId)
-                ->first()
-            : null;
-        if ($config) {
-            return $config->maxima();
-        }
+        // One school-wide setting (Admin > Assessment & grading) applies to every class, subject and term.
         $settings = SchoolSettings::current();
 
         return [

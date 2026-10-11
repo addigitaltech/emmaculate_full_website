@@ -32,13 +32,32 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Result::class, ResultPolicy::class);
-
+        // The sign-in pages and score entry extend the site layout but their controllers do not pass the
+        // school settings, navigation or footer, which made /login return a server error. Supply them here.
+        // Editors never type web addresses: they are made from the title. Published items get a publish date automatically.
+        foreach ([\App\Models\NewsPost::class, \App\Models\SchoolEvent::class, \App\Models\AcademicProgramme::class, \App\Models\GalleryAlbum::class] as $sluggedModel) {
+            $sluggedModel::saving(function ($model): void {
+                if (blank($model->slug) && filled($model->title)) {
+                    $model->slug = \App\Support\Slugger::unique($model, (string) $model->title);
+                }
+            });
+        }
+        foreach ([\App\Models\NewsPost::class, \App\Models\SchoolEvent::class, \App\Models\CmsPage::class] as $datedModel) {
+            $datedModel::saving(function ($model): void {
+                if ($model->status === 'published' && ! $model->published_at) {
+                    $model->published_at = now();
+                }
+            });
+        }
+        \App\Models\NewsPost::saving(function ($post): void {
+            if (! $post->author_id && auth()->check()) {
+                $post->author_id = auth()->id();
+            }
+        });
         foreach ([\App\Models\SchoolSettings::class, \App\Models\NavigationItem::class, \App\Models\FooterSection::class, \App\Models\PortalLink::class, \App\Models\CmsPage::class, \App\Models\CmsSection::class, \App\Models\HeroSlide::class, \App\Models\AcademicProgramme::class, \App\Models\NewsPost::class, \App\Models\SchoolEvent::class, \App\Models\Announcement::class, \App\Models\GalleryAlbum::class, \App\Models\GalleryImage::class, \App\Models\MediaAsset::class, \App\Models\Faq::class, \App\Models\LeadershipProfile::class, \App\Models\AdmissionsSettings::class] as $cachedModel) {
             $cachedModel::saved(fn () => \App\Support\SiteCache::flush());
             $cachedModel::deleted(fn () => \App\Support\SiteCache::flush());
         }
-
-        // Auth and staff views extend the public layout but their controllers do not all pass these values.
         View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*', 'site.check-result'], function ($view): void {
             $data = $view->getData();
             $view->with([
@@ -47,10 +66,8 @@ class AppServiceProvider extends ServiceProvider
                 'footerSections' => $data['footerSections'] ?? FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
             ]);
         });
-
         View::composer('site.layout', function ($view): void {
-            $data = $view->getData();
-            $settings = $data['settings'] ?? SchoolSettings::current();
+            $settings = $view->getData()['settings'] ?? SchoolSettings::current();
             $icons = ['facebook', 'twitter', 'instagram', 'youtube', 'tiktok', 'linkedin', 'whatsapp'];
             $social = [];
             foreach (($settings->social_links ?? []) as $network => $url) {
@@ -64,24 +81,16 @@ class AppServiceProvider extends ServiceProvider
             if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
                 $digits = '234'.substr($digits, 1);
             }
-            $portalLinks = $data['portalLinks'] ?? \App\Support\SiteCache::remember('portal-links', 600, fn () => PortalLink::query()->publiclyVisible()->get());
+            $portalLinks = \App\Support\SiteCache::remember('portal-links', 600, fn () => PortalLink::query()->publiclyVisible()->get());
             foreach ($portalLinks as $link) {
-                $off = ($link->key === 'students' && ! $settings->student_portal_enabled)
-                    || ($link->key === 'parents' && ! $settings->parent_portal_enabled);
+                $off = ($link->key === 'students' && ! $settings->student_portal_enabled) || ($link->key === 'parents' && ! $settings->parent_portal_enabled);
                 if ($off) {
-                    $link->status = 'coming_soon';
+                    $link->status = 'coming_soon'; // display only, never saved
                 }
             }
-            if ($settings->public_result_check_enabled && ! $portalLinks->contains(fn (PortalLink $link) => $link->key === 'result-check')) {
+            if ($settings->public_result_check_enabled) {
                 $check = new PortalLink();
-                $check->forceFill([
-                    'key' => 'result-check',
-                    'title' => 'Check Result',
-                    'description' => 'Use your admission number and surname',
-                    'url' => '/check-result',
-                    'status' => 'live',
-                    'sort_order' => 0,
-                ]);
+                $check->forceFill(['key' => 'result-check', 'title' => 'Check Result', 'description' => 'Use your admission number and surname', 'url' => '/check-result', 'status' => 'live', 'sort_order' => 0]);
                 $portalLinks->push($check);
             }
             $view->with([
@@ -91,9 +100,10 @@ class AppServiceProvider extends ServiceProvider
                 'currentPath' => trim(request()->path(), '/'),
             ]);
         });
-
         RateLimiter::for('contact', fn (Request $request) => Limit::perMinute(5)->by((string) $request->ip()));
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
+        // Many students may sign in or look up results from one school network, so these allow more per IP.
+        // Brute-force protection for them is the per-admission-number lockout in the controllers.
         RateLimiter::for('student-auth', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
         RateLimiter::for('results', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
         RateLimiter::for('payment-initiation', fn (Request $request) => Limit::perMinute(8)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));

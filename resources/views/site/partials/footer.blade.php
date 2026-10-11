@@ -52,7 +52,7 @@
     <div class="footer-bottom">
         <div class="site-container footer-bottom__inner">
             <p>&copy; {{ now()->year }} {{ $settings->school_name }}. All Rights Reserved.</p>
-            <p><a class="footer-admin" href="{{ url('/admin') }}">Admin login</a> &nbsp;&middot;&nbsp; Designed with <span class="heart" aria-label="love">&hearts;</span> for Education</p>
+            <p>@if($settings->show_admin_link)<a class="footer-admin" href="{{ url('/admin') }}">Admin login</a> &nbsp;&middot;&nbsp; @endif<a class="footer-admin" href="{{ route('credit') }}">Designed by Addigitaltech for Education</a></p>
         </div>
     </div>
 </footer>

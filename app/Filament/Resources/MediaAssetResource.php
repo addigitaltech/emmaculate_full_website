@@ -12,10 +12,11 @@ use Filament\Tables\Table;
 class MediaAssetResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'upload media';
+    protected static ?int $navigationSort = 6;
+    protected static ?string $navigationLabel = 'Media library';
     protected static ?string $navigationGroup = 'Website';
     protected static ?string $model = MediaAsset::class;
     protected static ?string $navigationIcon = 'heroicon-o-photo';
-
     public static function form(Form $form): Form
     {
         return $form->schema([

@@ -19,12 +19,14 @@ use App\Models\LeadershipProfile;
 use App\Models\MediaAsset;
 use App\Models\NavigationItem;
 use App\Models\NewsPost;
+use App\Mail\SchoolUpdateMail;
 use App\Models\NewsletterSubscriber;
 use App\Models\PortalLink;
 use App\Models\SchoolEvent;
 use App\Models\SchoolSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -74,7 +76,7 @@ class SiteController extends Controller
     {
         $page = CmsPage::published()->with('featuredMedia')->where('slug', 'about')->first();
         $mvPage = CmsPage::published()->where('slug', 'mission-vision')->first();
-        $groups = $mvPage ? PageBlocks::keyed($mvPage->content_blocks ?? []) : [];
+        $groups = $this->identityGroups($mvPage ? PageBlocks::keyed($mvPage->content_blocks ?? []) : []);
 
         return $this->render('site.about', [
             'page' => $page,
@@ -111,7 +113,8 @@ class SiteController extends Controller
 
         return $this->render('site.mission', [
             'page' => $page,
-            'groups' => $page ? PageBlocks::keyed($page->content_blocks ?? []) : [],
+            'groups' => $this->identityGroups($page ? PageBlocks::keyed($page->content_blocks ?? []) : []),
+            'closing' => $this->settings()->identity_closing,
             'heroImage' => $this->heroUrl('mission'),
             'seoTitle' => $page?->seo_title ?: 'Mission, Vision, Pledge & Anthem',
             'seoDescription' => $page?->seo_description ?: $page?->excerpt,
@@ -353,8 +356,84 @@ class SiteController extends Controller
             'metadata' => [],
             'submitted_at' => now(),
         ]);
+        $this->notifyApplication($application);
 
         return redirect()->route('admissions')->with('application_reference', $application->reference);
+    }
+
+    public function credit(): View
+    {
+        $credit = config('school.credit');
+
+        return $this->render('site.designed-by', [
+            'whatsappUrl' => 'https://wa.me/'.$credit['whatsapp'].'?text='.rawurlencode('Hello '.$credit['name'].', I saw the '.$this->settings()->school_name.' website and I would like to talk about a project.'),
+            'websiteUrl' => $credit['website'],
+            'creditName' => $credit['name'],
+            'heroImage' => null,
+        ]);
+    }
+
+    public function unsubscribe(NewsletterSubscriber $subscriber): View
+    {
+        $subscriber->forceFill(['status' => 'unsubscribed'])->save();
+
+        return $this->render('site.message', [
+            'heading' => 'You have been unsubscribed',
+            'message' => 'You will no longer receive our newsletter emails. You can subscribe again at any time from the bottom of any page.',
+        ]);
+    }
+
+    /** Emails the family a receipt for their application and tells the school office. Never blocks the form. */
+    private function notifyApplication(AdmissionApplication $application): void
+    {
+        try {
+            $school = $this->settings();
+            if (filled($application->guardian_email)) {
+                Mail::to($application->guardian_email)->send(new SchoolUpdateMail(
+                    subjectLine: 'We received your application - '.$school->school_name,
+                    heading: 'Application received',
+                    bodyText: 'Thank you for applying to '.$school->school_name.'. We have received the application for '.$application->applicant_name."\n\nYour reference number is ".$application->reference.'. Please keep it. The school will contact you with the next steps.',
+                    url: route('admissions'),
+                    buttonLabel: 'Visit admissions page',
+                ));
+            }
+            if (filled($school->email)) {
+                Mail::to($school->email)->send(new SchoolUpdateMail(
+                    subjectLine: 'New admission application: '.$application->applicant_name,
+                    heading: 'New admission application',
+                    bodyText: 'Applicant: '.$application->applicant_name."\nApplying for: ".$application->applying_for."\nParent/guardian: ".$application->guardian_name."\nPhone: ".$application->guardian_phone."\nReference: ".$application->reference,
+                ));
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    /**
+     * Mission, vision, pledge and anthem written in Admin > School profile win;
+     * anything still only in the old Mission & Vision page fills the gaps.
+     *
+     * @param  array<string, array{paragraphs: array<int, string>, items: array<int, string>}>  $fallback
+     */
+    private function identityGroups(array $fallback): array
+    {
+        $settings = $this->settings();
+        $lines = fn (?string $text): array => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $text) ?: []), fn ($line) => $line !== ''));
+        $groups = [];
+        if (filled($settings->mission)) {
+            $groups['mission'] = ['paragraphs' => [trim((string) $settings->mission)], 'items' => []];
+        }
+        if (filled($settings->vision)) {
+            $groups['vision'] = ['paragraphs' => [trim((string) $settings->vision)], 'items' => []];
+        }
+        if (filled($settings->pledge)) {
+            $groups['pledge'] = ['paragraphs' => [], 'items' => $lines($settings->pledge)];
+        }
+        if (filled($settings->anthem)) {
+            $groups['anthem'] = ['paragraphs' => [], 'items' => $lines($settings->anthem)];
+        }
+
+        return $groups + $fallback;
     }
 
     private function settings(): SchoolSettings

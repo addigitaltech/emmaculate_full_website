@@ -12,10 +12,12 @@ use Filament\Tables\Table;
 class GradeBandResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
-    protected static ?string $navigationGroup = 'Results';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 90;
+    protected static ?string $navigationLabel = 'Grade bands';
+    protected static ?string $navigationGroup = 'Academics setup';
     protected static ?string $model = GradeBand::class;
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-
     public static function form(Form $form): Form
     {
         return $form->schema([

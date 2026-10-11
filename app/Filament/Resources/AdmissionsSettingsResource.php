@@ -14,11 +14,12 @@ use Filament\Tables\Table;
 class AdmissionsSettingsResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Admission information';
+    protected static ?string $navigationGroup = 'Admissions & messages';
     protected static bool $singleton = true;
     protected static ?string $model = AdmissionsSettings::class;
-    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
     public static function form(Form $form): Form
     {
         $safeUrlRule = fn () => function (string $attribute, $value, $fail): void { if (filled($value) && ! SafePublicUrl::allows((string) $value)) $fail('Use an internal path or an HTTPS link without credentials.'); };

@@ -13,10 +13,11 @@ use Filament\Tables\Table;
 class FooterSectionResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationLabel = 'Footer';
+    protected static ?string $navigationGroup = 'Homepage & menus';
     protected static ?string $model = FooterSection::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
-
+    protected static ?string $navigationIcon = 'heroicon-o-bars-3-bottom-left';
     public static function form(Form $form): Form
     {
         $safeUrlRule = fn () => function (string $attribute, $value, $fail): void { if (filled($value) && ! SafePublicUrl::allows((string) $value)) $fail('Use an internal path or an HTTPS link without credentials.'); };

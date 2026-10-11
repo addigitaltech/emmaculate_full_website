@@ -8,6 +8,8 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\MenuItem;
+use Filament\Navigation\NavigationGroup;
+use Filament\View\PanelsRenderHook;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages;
 use Filament\Panel;
@@ -39,6 +41,18 @@ class AdminPanelProvider extends PanelProvider
                 'info' => Color::Blue,
                 'warning' => Color::Amber,
             ])
+            ->navigationGroups([
+                NavigationGroup::make('Website'),
+                NavigationGroup::make('School profile'),
+                NavigationGroup::make('Homepage & menus')->collapsed(),
+                NavigationGroup::make('Admissions & messages'),
+                NavigationGroup::make('People'),
+                NavigationGroup::make('Academics setup')->collapsed(),
+                NavigationGroup::make('Results'),
+                NavigationGroup::make('Fees & payments')->collapsed(),
+                NavigationGroup::make('System')->collapsed(),
+            ])
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.back-to-site'))
             ->navigationItems([
                 NavigationItem::make('Manage results')
                     ->url(fn () => route('staff.results'))

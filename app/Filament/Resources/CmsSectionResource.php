@@ -14,10 +14,11 @@ use Filament\Tables\Table;
 class CmsSectionResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Homepage & menus';
     protected static ?string $model = CmsSection::class;
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
-    protected static ?string $navigationLabel = 'Page sections';
+    protected static ?string $navigationLabel = 'Page text blocks';
     protected static ?string $modelLabel = 'page section';
 
     public static function form(Form $form): Form

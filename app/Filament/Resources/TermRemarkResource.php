@@ -16,10 +16,12 @@ use Filament\Tables\Table;
 class TermRemarkResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 92;
+    protected static ?string $navigationLabel = 'Remarks';
     protected static ?string $navigationGroup = 'Results';
     protected static ?string $model = TermRemark::class;
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
-
     public static function form(Form $form): Form
     {
         return $form->schema([

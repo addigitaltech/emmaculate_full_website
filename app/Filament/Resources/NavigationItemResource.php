@@ -14,10 +14,11 @@ use Filament\Tables\Table;
 class NavigationItemResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationLabel = 'Menus';
+    protected static ?string $navigationGroup = 'Homepage & menus';
     protected static ?string $model = NavigationItem::class;
     protected static ?string $navigationIcon = 'heroicon-o-bars-3';
-
     public static function form(Form $form): Form
     {
         $safeUrlRule = fn () => function (string $attribute, $value, $fail): void {

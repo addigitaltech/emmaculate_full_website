@@ -16,12 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class AuditLogResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'view audit logs';
+    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'Activity log';
     protected static ?string $navigationGroup = 'System';
     protected static bool $readOnly = true;
     protected static ?string $model = AuditLog::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
     public static function form(Form $form): Form
     {
         return $form

@@ -48,7 +48,7 @@
 
         <div class="pull-quote" style="margin-top:1.4rem">
             <x-site-icon name="quote" class="pull-quote__mark" />
-            <p class="pull-quote__text">{{ \App\Domain\Website\Support\SiteSections::description('mission.closing', 'Our mission gives us direction, our vision gives us purpose, our pledge keeps us grounded, and our anthem unites us as one family.') }}</p>
+            <p class="pull-quote__text">{{ $closing ?: \App\Domain\Website\Support\SiteSections::description('mission.closing', 'Our mission gives us direction, our vision gives us purpose, our pledge keeps us grounded, and our anthem unites us as one family.') }}</p>
             @if($settings->motto)<div class="pull-quote__brand"><x-site-icon name="award" /><span>{{ $settings->motto }}</span></div>@endif
         </div>
     </div>

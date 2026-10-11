@@ -14,10 +14,11 @@ use Filament\Tables\Table;
 class CmsPageResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
+    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationLabel = 'Pages';
     protected static ?string $navigationGroup = 'Website';
     protected static ?string $model = CmsPage::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-
     public static function form(Form $form): Form
     {
         $safeUrlRule = fn () => function (string $attribute, $value, $fail): void {

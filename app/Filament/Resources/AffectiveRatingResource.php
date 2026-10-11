@@ -16,10 +16,12 @@ use Filament\Tables\Table;
 class AffectiveRatingResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
+    protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 93;
+    protected static ?string $navigationLabel = 'Behaviour ratings';
     protected static ?string $navigationGroup = 'Results';
     protected static ?string $model = AffectiveRating::class;
     protected static ?string $navigationIcon = 'heroicon-o-star';
-
     public static function form(Form $form): Form
     {
         return $form->schema([

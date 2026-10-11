@@ -12,12 +12,12 @@ class SchoolEvent extends Model
 
     protected $fillable = [
         'image_id', 'title', 'slug', 'description', 'starts_at', 'ends_at', 'location',
-        'registration_url', 'status', 'is_featured', 'published_at', 'expires_at', 'seo_title', 'seo_description',
+        'registration_url', 'status', 'is_featured', 'published_at', 'expires_at', 'seo_title', 'seo_description', 'send_email', 'notified_at',
     ];
 
     protected function casts(): array
     {
-        return ['starts_at' => 'datetime', 'ends_at' => 'datetime', 'published_at' => 'datetime', 'expires_at' => 'datetime', 'is_featured' => 'boolean'];
+        return ['starts_at' => 'datetime', 'ends_at' => 'datetime', 'published_at' => 'datetime', 'expires_at' => 'datetime', 'is_featured' => 'boolean', 'send_email' => 'boolean', 'notified_at' => 'datetime'];
     }
 
     public function scopePublished(Builder $query): Builder

@@ -13,11 +13,12 @@ use Filament\Tables\Table;
 class PaymentTransactionResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage payments';
-    protected static ?string $navigationGroup = 'Payments';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationLabel = 'Payments';
+    protected static ?string $navigationGroup = 'Fees & payments';
     protected static bool $readOnly = true;
     protected static ?string $model = PaymentTransaction::class;
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-
     public static function form(Form $form): Form { return $form->schema([]); }
 
     public static function table(Table $table): Table

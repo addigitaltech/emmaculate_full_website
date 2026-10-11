@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class FeeTypeResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage fees';
-    protected static ?string $navigationGroup = 'Payments';
+    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Fee types';
+    protected static ?string $navigationGroup = 'Fees & payments';
     protected static ?string $model = FeeType::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
     public static function form(Form $form): Form
     {
         return $form

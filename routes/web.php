@@ -34,6 +34,8 @@ Route::post('/newsletter', [SiteController::class, 'subscribeNewsletter'])->midd
 Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->name('payments.return');
 
 Route::get('/portal', [PortalController::class, 'index'])->middleware('portal.enabled')->name('portal');
+Route::get('/designed-by', [SiteController::class, 'credit'])->name('credit');
+Route::get('/newsletter/unsubscribe/{subscriber}', [SiteController::class, 'unsubscribe'])->whereNumber('subscriber')->middleware('signed')->name('newsletter.unsubscribe');
 Route::get('/check-result', [ResultCheckController::class, 'form'])->name('result-check');
 Route::post('/check-result', [ResultCheckController::class, 'lookup'])->middleware('throttle:results')->name('result-check.lookup');
 Route::get('/check-result/{student}/{term}', [ResultCheckController::class, 'report'])->whereNumber(['student', 'term'])->middleware(['signed', 'throttle:results'])->name('result-check.report');

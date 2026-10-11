@@ -6,6 +6,7 @@ use App\Filament\Resources\LeadershipProfileResource\Pages;
 use App\Filament\Resources\LeadershipProfileResource\RelationManagers;
 use App\Models\LeadershipProfile;
 use Filament\Forms;
+use App\Filament\Support\MediaField;
 use Filament\Forms\Form;
 use App\Filament\Resources\AuthorizedResource;
 use Filament\Tables;
@@ -15,79 +16,42 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class LeadershipProfileResource extends AuthorizedResource
 {
+    protected static ?string $navigationGroup = 'School profile';
+    protected static ?string $navigationLabel = 'School leadership';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?int $navigationSort = 2;
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
     protected static ?string $model = LeadershipProfile::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required(),
-                Forms\Components\TextInput::make('title')
-                    ->required(),
-                Forms\Components\TextInput::make('photo_id')
-                    ->numeric(),
-                Forms\Components\TextInput::make('photo_path'),
-                Forms\Components\Textarea::make('biography')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('qualifications'),
-                Forms\Components\Toggle::make('is_visible')
-                    ->required(),
-                Forms\Components\TextInput::make('sort_order')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
-            ]);
+        return $form->schema([
+            Forms\Components\Section::make('Leader')->schema([
+                Forms\Components\TextInput::make('name')->label('Full name')->required()->maxLength(120),
+                Forms\Components\TextInput::make('title')->label('Position')->required()->maxLength(120)->helperText('Example: Principal, Proprietor, Vice Principal.'),
+                MediaField::image('photo_id', 'Photo'),
+                Forms\Components\Toggle::make('is_visible')->label('Show on the website')->default(true),
+                Forms\Components\Textarea::make('biography')->label('About this person (short)')->rows(4)->columnSpanFull(),
+                Forms\Components\TextInput::make('qualifications')->label('Qualifications (optional)')->maxLength(255)->columnSpanFull(),
+            ])->columns(2),
+            Forms\Components\Hidden::make('sort_order')->default(0),
+        ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('title')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('photo_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('photo_path')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('qualifications')
-                    ->searchable(),
-                Tables\Columns\IconColumn::make('is_visible')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('sort_order')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\ImageColumn::make('photo.path')->label('Photo')->disk('public')->circular(),
+                Tables\Columns\TextColumn::make('name')->searchable(),
+                Tables\Columns\TextColumn::make('title')->label('Position'),
+                Tables\Columns\IconColumn::make('is_visible')->label('Shown')->boolean(),
             ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->reorderable('sort_order')
+            ->defaultSort('sort_order')
+            ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

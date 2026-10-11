@@ -14,10 +14,11 @@ use Filament\Tables\Table;
 class HeroSlideResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage website content';
-    protected static ?string $navigationGroup = 'Website';
+    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Homepage banners';
+    protected static ?string $navigationGroup = 'Homepage & menus';
     protected static ?string $model = HeroSlide::class;
-    protected static ?string $navigationIcon = 'heroicon-o-photo';
-
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     public static function form(Form $form): Form
     {
         $safeUrlRule = fn () => function (string $attribute, $value, $fail): void { if (filled($value) && ! SafePublicUrl::allows((string) $value)) $fail('Use an internal path or an HTTPS link without credentials.'); };
