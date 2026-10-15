@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\AcademicSessionResource\Pages\ListAcademicSessions;
+use App\Filament\Resources\AcademicTermResource\Pages\ListAcademicTerms;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -54,6 +57,38 @@ class AdminPagesSmokeTest extends TestCase
     {
         foreach (['school-profile', 'portal-settings', 'assessment-grading', 'email-center'] as $slug) {
             $this->actingAs($this->admin)->get('/admin/'.$slug)->assertOk();
+        }
+    }
+
+    #[Test]
+    public function academic_sessions_and_terms_do_not_offer_bulk_delete(): void
+    {
+        $this->actingAs($this->admin);
+
+        Livewire::test(ListAcademicSessions::class)->assertTableBulkActionDoesNotExist('delete');
+        Livewire::test(ListAcademicTerms::class)->assertTableBulkActionDoesNotExist('delete');
+    }
+
+    #[Test]
+    public function core_admin_resources_do_not_offer_bulk_delete(): void
+    {
+        $this->actingAs($this->admin);
+
+        $pages = [
+            \App\Filament\Resources\StudentResource\Pages\ListStudents::class,
+            \App\Filament\Resources\TeacherResource\Pages\ListTeachers::class,
+            \App\Filament\Resources\ParentProfileResource\Pages\ListParentProfiles::class,
+            \App\Filament\Resources\UserResource\Pages\ListUsers::class,
+            \App\Filament\Resources\SchoolClassResource\Pages\ListSchoolClasses::class,
+            \App\Filament\Resources\SubjectResource\Pages\ListSubjects::class,
+            \App\Filament\Resources\StudentFeeAssignmentResource\Pages\ListStudentFeeAssignments::class,
+            \App\Filament\Resources\PaymentTransactionResource\Pages\ListPaymentTransactions::class,
+            \App\Filament\Resources\AffectiveRatingResource\Pages\ListAffectiveRatings::class,
+            \App\Filament\Resources\TermRemarkResource\Pages\ListTermRemarks::class,
+        ];
+
+        foreach ($pages as $page) {
+            Livewire::test($page)->assertTableBulkActionDoesNotExist('delete');
         }
     }
 
