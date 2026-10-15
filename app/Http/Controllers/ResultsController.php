@@ -128,6 +128,8 @@ class ResultsController extends Controller
 
     public function report(Request $request, Result $result, ResultReportBuilder $builder)
     {
+        $user = $request->user();
+        abort_if($user->hasRole('Teacher') && ! ($user->hasRole('Super Admin') || $user->can('manage results')), 403, 'Teachers can access results only through their assigned subject sheets.');
         Gate::authorize('view', $result);
         $data = $builder->build($result);
         if ($request->query('download') === 'pdf') {

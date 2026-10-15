@@ -19,7 +19,7 @@ class ReportController extends Controller
     public function show(Request $request, Student $student, AcademicTerm $term, TermReportBuilder $builder, ResultSheetService $sheets)
     {
         $user = $request->user();
-        $staffView = $sheets->isAdmin($user) || $sheets->teachesClass($user, $student->school_class_id, $student->arm_id);
+        $staffView = $sheets->isAdmin($user);
 
         if (! $staffView) {
             if ($user->hasRole('Student')) {
@@ -28,7 +28,7 @@ class ReportController extends Controller
                 $parent = $user->parentProfile()->first();
                 abort_unless($parent && $parent->students()->whereKey($student->id)->exists(), 403);
             } else {
-                abort(403);
+                abort(403, 'Teachers can access results only through their assigned subject sheets.');
             }
             // Families only ever see published results.
             abort_unless(Result::published()->where('student_id', $student->id)->where('academic_term_id', $term->id)->exists(), 404);

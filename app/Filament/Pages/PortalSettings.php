@@ -11,7 +11,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
-/** Super Admin switches: who gets a portal, the public result check, the admin link in the footer. */
+/** Portal/access switches remain Super Admin-only; student administrators may manage promotion rules. */
 class PortalSettings extends Page implements HasForms
 {
     use InteractsWithForms;
@@ -27,7 +27,9 @@ class PortalSettings extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return (bool) auth()->user()?->hasRole('Super Admin');
+        $user = auth()->user();
+
+        return (bool) ($user && ($user->hasRole('Super Admin') || $user->can('manage students')));
     }
 
     public function mount(): void
@@ -39,6 +41,9 @@ class PortalSettings extends Page implements HasForms
             'public_result_check_enabled' => (bool) $s->public_result_check_enabled,
             'payment_gate_results' => (bool) $s->payment_gate_results,
             'show_admin_link' => (bool) $s->show_admin_link,
+            'promotion_mode' => $s->promotion_mode ?? 'manual',
+            'promotion_min_average' => $s->promotion_min_average,
+            'promotion_min_subjects_passed' => $s->promotion_min_subjects_passed,
         ]);
     }
 
@@ -54,11 +59,26 @@ class PortalSettings extends Page implements HasForms
                     ->helperText('On: anyone with an admission number and surname can view published results. Use this when the portals are off.'),
                 Forms\Components\Toggle::make('payment_gate_results')->label('Hold results until school fees are paid')
                     ->helperText('On: a student with unpaid fees cannot open results.'),
-            ])->columns(2),
+            ])->columns(2)->visible(fn (): bool => (bool) auth()->user()?->hasRole('Super Admin')),
             Forms\Components\Section::make('Website')->schema([
                 Forms\Components\Toggle::make('show_admin_link')->label('Show "Admin login" in the website footer')
                     ->helperText('Turn off to hide the shortcut. The admin login still works at /admin.'),
-            ]),
+            ])->visible(fn (): bool => (bool) auth()->user()?->hasRole('Super Admin')),
+            Forms\Components\Section::make('Student promotion')
+                ->description('Automatic decisions are applied only when an authorized administrator launches a source-to-destination academic-session transition. Unfinished or ineligible records are flagged for review.')
+                ->schema([
+                    Forms\Components\Select::make('promotion_mode')->label('Promotion mode')
+                        ->options(['manual' => 'Manual review', 'automatic' => 'Automatic by configured rules'])
+                        ->default('manual')->required(),
+                    Forms\Components\TextInput::make('promotion_min_average')->label('Minimum third-term cumulative average')
+                        ->numeric()->minValue(0)->maxValue(100)->step('0.01')
+                        ->required(fn (Forms\Get $get): bool => $get('promotion_mode') === 'automatic')
+                        ->helperText('Average of the student’s cumulative averages across offered subjects; configure a value before selecting Automatic.'),
+                    Forms\Components\TextInput::make('promotion_min_subjects_passed')->label('Minimum passed subjects')
+                        ->numeric()->integer()->minValue(0)->maxValue(1000)
+                        ->required(fn (Forms\Get $get): bool => $get('promotion_mode') === 'automatic')
+                        ->helperText('A subject passes at the school’s configured pass percentage.'),
+                ])->columns(2),
         ])->statePath('data');
     }
 
@@ -70,13 +90,21 @@ class PortalSettings extends Page implements HasForms
     public function save(): void
     {
         $d = $this->form->getState();
-        SchoolSettings::query()->orderBy('id')->firstOrFail()->fill([
-            'student_portal_enabled' => (bool) ($d['student_portal_enabled'] ?? false),
-            'parent_portal_enabled' => (bool) ($d['parent_portal_enabled'] ?? false),
-            'public_result_check_enabled' => (bool) ($d['public_result_check_enabled'] ?? false),
-            'payment_gate_results' => (bool) ($d['payment_gate_results'] ?? false),
-            'show_admin_link' => (bool) ($d['show_admin_link'] ?? false),
-        ])->save();
+        $fields = [
+            'promotion_mode' => $d['promotion_mode'] ?? 'manual',
+            'promotion_min_average' => filled($d['promotion_min_average'] ?? null) ? $d['promotion_min_average'] : null,
+            'promotion_min_subjects_passed' => filled($d['promotion_min_subjects_passed'] ?? null) ? $d['promotion_min_subjects_passed'] : null,
+        ];
+        if (auth()->user()?->hasRole('Super Admin')) {
+            $fields += [
+                'student_portal_enabled' => (bool) ($d['student_portal_enabled'] ?? false),
+                'parent_portal_enabled' => (bool) ($d['parent_portal_enabled'] ?? false),
+                'public_result_check_enabled' => (bool) ($d['public_result_check_enabled'] ?? false),
+                'payment_gate_results' => (bool) ($d['payment_gate_results'] ?? false),
+                'show_admin_link' => (bool) ($d['show_admin_link'] ?? false),
+            ];
+        }
+        SchoolSettings::query()->orderBy('id')->firstOrFail()->fill($fields)->save();
 
         Notification::make()->success()->title('Saved.')->send();
     }

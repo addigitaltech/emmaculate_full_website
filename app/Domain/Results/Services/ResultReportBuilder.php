@@ -3,11 +3,14 @@
 namespace App\Domain\Results\Services;
 
 use App\Models\AffectiveRating;
+use App\Models\AcademicTerm;
 use App\Models\AssessmentConfig;
 use App\Models\GradeBand;
 use App\Models\Result;
+use App\Models\SchoolClass;
 use App\Models\SchoolSettings;
 use App\Models\Student;
+use App\Models\Arm;
 use App\Models\TermRemark;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -27,22 +30,26 @@ final class ResultReportBuilder
         $settings = SchoolSettings::current();
         $sessionId = $anchor->academic_session_id;
         $termId = $anchor->academic_term_id;
+        $classId = $anchor->school_class_id ?? $student->school_class_id;
+        $armId = $anchor->school_class_id !== null ? $anchor->arm_id : $student->arm_id;
+        $reportClass = $classId ? SchoolClass::query()->find($classId) : null;
+        $reportArm = $armId ? Arm::query()->find($armId) : null;
 
         $results = Result::published()->where('student_id', $student->id)
             ->where('academic_session_id', $sessionId)->where('academic_term_id', $termId)
+            ->when($classId, fn ($query) => $query->where('school_class_id', $classId))
             ->with('subject')->orderBy('subject_id')->get();
         $offered = $results->where('is_offered', true)->values();
-        $classId = $student->school_class_id;
         $classRows = $classId ? Result::published()->where('school_class_id', $classId)
             ->where('academic_session_id', $sessionId)->where('academic_term_id', $termId)
             ->with('subject')->get()->where('is_offered', true)->values() : collect();
-        $armRows = $student->arm_id ? $classRows->where('arm_id', $student->arm_id)->values() : $classRows;
+        $armRows = $armId ? $classRows->where('arm_id', $armId)->values() : $classRows;
 
         $classMetrics = $this->studentAverages($classRows);
         $armMetrics = $this->studentAverages($armRows);
         $studentId = (int) $student->id;
         $classRank = $this->rank($classMetrics, $studentId);
-        $armRank = $student->arm_id ? $this->rank($armMetrics, $studentId) : null;
+        $armRank = $armId ? $this->rank($armMetrics, $studentId) : null;
         $studentCount = $classMetrics->count();
         $armCount = $armMetrics->count();
 
@@ -61,11 +68,21 @@ final class ResultReportBuilder
             ];
         })->keyBy('subject_id');
 
+        $cumulativeTermIds = AcademicTerm::query()
+            ->where('academic_session_id', $sessionId)
+            ->where('sequence', '<=', $anchor->academicTerm->sequence)
+            ->pluck('id');
         $sessionResults = Result::published()->where('student_id', $student->id)
-            ->where('academic_session_id', $sessionId)->with('subject')->get();
+            ->where('academic_session_id', $sessionId)
+            ->whereIn('academic_term_id', $cumulativeTermIds)
+            ->with('subject')->get();
         $cumulative = $sessionResults->where('is_offered', true)->groupBy('subject_id')->map(function (Collection $rows): array {
-            $scores = $rows->pluck('total_score')->map(fn ($score) => (float) $score);
-            return ['total' => round($scores->sum(), 2), 'average' => (int) round($scores->avg()), 'terms' => $scores->count()];
+            $calculated = $this->calculator->cumulativeAverage($rows->pluck('total_score')->all());
+            return [
+                'total' => $calculated['cumulative_total'],
+                'average' => $calculated['cumulative_average'],
+                'terms' => $calculated['cumulative_terms_count'],
+            ];
         });
 
         $termRemark = TermRemark::query()->where('student_id', $student->id)->where('academic_session_id', $sessionId)->where('academic_term_id', $termId)->first();
@@ -84,7 +101,7 @@ final class ResultReportBuilder
             $logoPath = null;
         }
 
-        return compact('anchor', 'student', 'settings', 'results', 'offered', 'classRows', 'classRank', 'armRank', 'studentCount', 'armCount', 'subjectStats', 'cumulative', 'termRemark', 'ratings', 'bands', 'maxima', 'totalMax', 'total', 'average', 'overallGrade', 'passCount', 'logoPath');
+        return compact('anchor', 'student', 'reportClass', 'reportArm', 'settings', 'results', 'offered', 'classRows', 'classRank', 'armRank', 'studentCount', 'armCount', 'subjectStats', 'cumulative', 'termRemark', 'ratings', 'bands', 'maxima', 'totalMax', 'total', 'average', 'overallGrade', 'passCount', 'logoPath');
     }
 
     private function studentAverages(Collection $rows): Collection

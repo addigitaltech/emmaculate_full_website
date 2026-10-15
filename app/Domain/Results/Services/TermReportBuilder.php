@@ -4,7 +4,9 @@ namespace App\Domain\Results\Services;
 
 use App\Models\AcademicTerm;
 use App\Models\AffectiveRating;
+use App\Models\Arm;
 use App\Models\Result;
+use App\Models\SchoolClass;
 use App\Models\SchoolSettings;
 use App\Models\Student;
 use App\Models\TermRemark;
@@ -29,7 +31,18 @@ final class TermReportBuilder
         $student->loadMissing(['schoolClass', 'arm', 'photo']);
         $term->loadMissing('session');
         $settings = SchoolSettings::current();
-        $classId = $student->school_class_id;
+        $assignment = Result::query()
+            ->where('student_id', $student->id)
+            ->where('academic_session_id', $term->academic_session_id)
+            ->where('academic_term_id', $term->id)
+            ->whereNotNull('school_class_id')
+            ->when($includeUnpublished, fn ($query) => $query->whereIn('status', ['pending', 'published']), fn ($query) => $query->published())
+            ->orderBy('id')
+            ->first(['school_class_id', 'arm_id']);
+        $classId = $assignment?->school_class_id ?? $student->school_class_id;
+        $armId = $assignment ? $assignment->arm_id : $student->arm_id;
+        $reportClass = $classId ? SchoolClass::query()->find($classId) : null;
+        $reportArm = $armId ? Arm::query()->find($armId) : null;
 
         $population = Result::query()
             ->where('academic_session_id', $term->academic_session_id)
@@ -44,10 +57,25 @@ final class TermReportBuilder
             ? collect()
             : \App\Models\Subject::query()->whereIn('id', $mine->pluck('subject_id'))->orderBy('name')->get()->keyBy('id');
 
-        $rows = $mine->sortBy(fn (Result $result) => $subjects[$result->subject_id]->name ?? '')->values()->map(function (Result $result) use ($population, $subjects, $term, $classId): array {
+        $cumulativeTermIds = AcademicTerm::query()
+            ->where('academic_session_id', $term->academic_session_id)
+            ->where('sequence', '<=', $term->sequence)
+            ->pluck('id');
+        $cumulativeBySubject = Result::query()
+            ->where('student_id', $student->id)
+            ->where('academic_session_id', $term->academic_session_id)
+            ->whereIn('academic_term_id', $cumulativeTermIds)
+            ->where('is_offered', true)
+            ->when($includeUnpublished, fn ($query) => $query->whereIn('status', ['pending', 'published']), fn ($query) => $query->where('status', 'published'))
+            ->get()
+            ->groupBy('subject_id')
+            ->map(fn (Collection $results): array => $this->calculator->cumulativeAverage($results->pluck('total_score')->all()));
+
+        $rows = $mine->sortBy(fn (Result $result) => $subjects[$result->subject_id]->name ?? '')->values()->map(function (Result $result) use ($population, $subjects, $term, $classId, $cumulativeBySubject): array {
             $scores = $population->where('subject_id', $result->subject_id)->pluck('total_score')->map(fn ($value) => (float) $value)->values();
             $score = (float) $result->total_score;
             $maxima = $this->sheets->maxima((int) $term->academic_session_id, (int) $term->id, $classId, (int) $result->subject_id);
+            $cumulative = $cumulativeBySubject->get($result->subject_id);
 
             return [
                 'subject' => $subjects[$result->subject_id]->name ?? '—',
@@ -58,6 +86,9 @@ final class TermReportBuilder
                 'total' => $score,
                 'grade' => $result->grade,
                 'remark' => $result->remark,
+                'cumulative_total' => $cumulative['cumulative_total'] ?? $score,
+                'cumulative_average' => $cumulative['cumulative_average'] ?? (int) round($score),
+                'cumulative_terms_count' => $cumulative['cumulative_terms_count'] ?? 1,
                 'average' => $scores->isNotEmpty() ? round($scores->avg(), 1) : 0.0,
                 'highest' => $scores->isNotEmpty() ? (float) $scores->max() : 0.0,
                 'lowest' => $scores->isNotEmpty() ? (float) $scores->min() : 0.0,
@@ -69,7 +100,7 @@ final class TermReportBuilder
         })->all();
 
         $classAverages = $this->averages($population);
-        $armPopulation = $student->arm_id ? $population->where('arm_id', $student->arm_id)->values() : $population;
+        $armPopulation = $armId ? $population->where('arm_id', $armId)->values() : $population;
         $armAverages = $this->averages($armPopulation);
         $bands = $this->sheets->gradeBands();
 
@@ -102,6 +133,8 @@ final class TermReportBuilder
 
         return [
             'student' => $student,
+            'reportClass' => $reportClass,
+            'reportArm' => $reportArm,
             'term' => $term,
             'settings' => $settings,
             'rows' => $rows,
@@ -111,7 +144,7 @@ final class TermReportBuilder
                 'class_total' => $classAverages->count(),
                 'class_position' => $this->rank($classAverages, (int) $student->id),
                 'arm_total' => $armAverages->count(),
-                'arm_position' => $student->arm_id ? $this->rank($armAverages, (int) $student->id) : null,
+                'arm_position' => $armId ? $this->rank($armAverages, (int) $student->id) : null,
                 'total_score' => round($totalScore, 2),
                 'average' => $average,
                 'overall' => $this->calculator->gradeFor($average, $bands),

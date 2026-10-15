@@ -39,7 +39,7 @@
                         </td>
                         <td class="actions">
                             <a class="link-action link-action--green" href="{{ route('staff.results.student', ['student' => $student->id, 'term' => $term->id]) }}">Enter result</a>
-                            <a class="link-action link-action--blue" href="{{ route('reports.show', ['student' => $student->id, 'term' => $term->id]) }}" target="_blank" rel="noopener">Print result</a>
+                            @if($isAdmin)<a class="link-action link-action--blue" href="{{ route('reports.show', ['student' => $student->id, 'term' => $term->id]) }}" target="_blank" rel="noopener">Print result</a>@endif
                         </td>
                     </tr>
                 @empty

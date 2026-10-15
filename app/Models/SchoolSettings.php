@@ -8,11 +8,11 @@ use Illuminate\Validation\ValidationException;
 
 class SchoolSettings extends Model
 {
-    protected $fillable = ['school_name', 'short_name', 'motto', 'description', 'logo_path', 'favicon_path', 'address', 'phone_primary', 'phone_secondary', 'email', 'whatsapp', 'office_hours', 'social_links', 'theme_tokens', 'verified_stats', 'ca1_max_score', 'ca2_max_score', 'ca3_max_score', 'exam_max_score', 'pass_percentage', 'highlight_fail_grade', 'payment_gate_results', 'result_access_mode', 'student_portal_enabled', 'parent_portal_enabled', 'public_result_check_enabled', 'gps_location', 'show_admin_link', 'mission', 'vision', 'pledge', 'anthem', 'identity_closing', 'canonical_base_url', 'global_settings'];
+    protected $fillable = ['school_name', 'short_name', 'motto', 'description', 'logo_path', 'favicon_path', 'address', 'phone_primary', 'phone_secondary', 'email', 'whatsapp', 'office_hours', 'social_links', 'theme_tokens', 'verified_stats', 'ca1_max_score', 'ca2_max_score', 'ca3_max_score', 'exam_max_score', 'pass_percentage', 'highlight_fail_grade', 'payment_gate_results', 'result_access_mode', 'student_portal_enabled', 'parent_portal_enabled', 'public_result_check_enabled', 'promotion_mode', 'promotion_min_average', 'promotion_min_subjects_passed', 'gps_location', 'show_admin_link', 'mission', 'vision', 'pledge', 'anthem', 'identity_closing', 'canonical_base_url', 'global_settings'];
 
     protected function casts(): array
     {
-        return ['social_links' => 'array', 'theme_tokens' => 'array', 'verified_stats' => 'array', 'global_settings' => 'array', 'highlight_fail_grade' => 'boolean', 'payment_gate_results' => 'boolean', 'student_portal_enabled' => 'boolean', 'show_admin_link' => 'boolean', 'parent_portal_enabled' => 'boolean', 'public_result_check_enabled' => 'boolean', 'ca1_max_score' => 'integer', 'ca2_max_score' => 'integer', 'ca3_max_score' => 'integer', 'exam_max_score' => 'integer', 'pass_percentage' => 'integer'];
+        return ['social_links' => 'array', 'theme_tokens' => 'array', 'verified_stats' => 'array', 'global_settings' => 'array', 'highlight_fail_grade' => 'boolean', 'payment_gate_results' => 'boolean', 'student_portal_enabled' => 'boolean', 'show_admin_link' => 'boolean', 'parent_portal_enabled' => 'boolean', 'public_result_check_enabled' => 'boolean', 'ca1_max_score' => 'integer', 'ca2_max_score' => 'integer', 'ca3_max_score' => 'integer', 'exam_max_score' => 'integer', 'pass_percentage' => 'integer', 'promotion_min_average' => 'decimal:2', 'promotion_min_subjects_passed' => 'integer'];
     }
 
     protected static function booted(): void
@@ -24,6 +24,27 @@ class SchoolSettings extends Model
             }
             if ($settings->pass_percentage < 0 || $settings->pass_percentage > 100) {
                 throw ValidationException::withMessages(['pass_percentage' => 'Pass percentage must be between 0 and 100.']);
+            }
+            if (! in_array($settings->promotion_mode ?? 'manual', ['manual', 'automatic'], true)) {
+                throw ValidationException::withMessages(['promotion_mode' => 'Choose Manual or Automatic promotion.']);
+            }
+            if ($settings->promotion_min_average !== null && ((float) $settings->promotion_min_average < 0 || (float) $settings->promotion_min_average > 100)) {
+                throw ValidationException::withMessages(['promotion_min_average' => 'The minimum cumulative average must be between 0 and 100.']);
+            }
+            if ($settings->promotion_min_subjects_passed !== null && (int) $settings->promotion_min_subjects_passed < 0) {
+                throw ValidationException::withMessages(['promotion_min_subjects_passed' => 'The minimum passed-subject count cannot be negative.']);
+            }
+            if (($settings->promotion_mode ?? 'manual') === 'automatic') {
+                $errors = [];
+                if ($settings->promotion_min_average === null) {
+                    $errors['promotion_min_average'] = 'Set the minimum cumulative average before enabling automatic promotion.';
+                }
+                if ($settings->promotion_min_subjects_passed === null) {
+                    $errors['promotion_min_subjects_passed'] = 'Set the minimum passed-subject count before enabling automatic promotion.';
+                }
+                if ($errors !== []) {
+                    throw ValidationException::withMessages($errors);
+                }
             }
             foreach ($settings->social_links ?? [] as $network => $url) {
                 if (! SafePublicUrl::allows((string) $url)) {
@@ -38,6 +59,6 @@ class SchoolSettings extends Model
 
     public static function current(): self
     {
-        return \App\Support\SiteCache::remember('settings', 600, fn () => static::query()->orderBy('id')->first() ?? static::query()->create(['school_name' => 'Emmaculate Academy', 'short_name' => 'Emmaculate Academy', 'motto' => 'Determined to make a difference', 'ca1_max_score' => 40, 'ca2_max_score' => 0, 'ca3_max_score' => 0, 'exam_max_score' => 60, 'pass_percentage' => 40, 'highlight_fail_grade' => true, 'payment_gate_results' => false, 'result_access_mode' => 'portal_only']));
+        return \App\Support\SiteCache::remember('settings', 600, fn () => static::query()->orderBy('id')->first() ?? static::query()->create(['school_name' => 'Emmaculate Academy', 'short_name' => 'Emmaculate Academy', 'motto' => 'Determined to make a difference', 'ca1_max_score' => 40, 'ca2_max_score' => 0, 'ca3_max_score' => 0, 'exam_max_score' => 60, 'pass_percentage' => 40, 'highlight_fail_grade' => true, 'payment_gate_results' => false, 'result_access_mode' => 'portal_only', 'promotion_mode' => 'manual']));
     }
 }

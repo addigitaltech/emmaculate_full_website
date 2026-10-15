@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Results\Services\ResultCalculator;
 use App\Domain\Results\Services\ResultSheetService;
 use App\Models\AcademicSession;
 use App\Models\AcademicTerm;
@@ -10,8 +11,10 @@ use App\Models\AffectiveTrait;
 use App\Models\Result;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\Subject;
 use App\Models\TeacherAssignment;
 use App\Models\TermRemark;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,6 +62,179 @@ class StaffResultsController extends Controller
             'assignments' => $assignments,
             'canPublish' => $user->can('publish results'),
         ]);
+    }
+
+    /** A class-wide result matrix; teachers only see their assigned subjects in their assigned class/arm. */
+    public function broadsheet(Request $request, ResultCalculator $calculator)
+    {
+        $data = $request->validate([
+            'session' => ['nullable', 'integer', 'exists:academic_sessions,id'],
+            'term' => ['nullable', 'integer', 'exists:academic_terms,id'],
+            'class' => ['nullable', 'integer', 'exists:school_classes,id'],
+            'arm' => ['nullable', 'integer', 'exists:arms,id'],
+        ]);
+        $user = $request->user();
+        $isAdmin = $this->sheets->isAdmin($user);
+        $sessionId = ! empty($data['session']) ? (int) $data['session'] : null;
+        $term = null;
+        if (! empty($data['term'])) {
+            $term = AcademicTerm::query()->with('session')->findOrFail((int) $data['term']);
+            abort_if($sessionId && $sessionId !== (int) $term->academic_session_id, 422, 'The selected term does not belong to the selected session.');
+            $sessionId = (int) $term->academic_session_id;
+        }
+
+        $classId = ! empty($data['class']) ? (int) $data['class'] : null;
+        $armId = ! empty($data['arm']) ? (int) $data['arm'] : null;
+        abort_if($armId && ! $classId, 422, 'Select a class before selecting an arm.');
+        $class = $classId ? SchoolClass::query()->with('arms')->findOrFail($classId) : null;
+        if ($class && $armId) {
+            abort_unless($class->arms()->whereKey($armId)->exists(), 422);
+        }
+        if ($class) {
+            abort_unless($this->sheets->teachesClass($user, $classId, $armId), 403);
+        }
+
+        $teacherId = $isAdmin ? null : $this->sheets->teacherId($user);
+        $teacherAssignments = $isAdmin
+            ? collect()
+            : TeacherAssignment::query()->where('teacher_id', $teacherId ?? 0)->get();
+        $classes = SchoolClass::query()->with('arms')->orderBy('name')->get();
+        if (! $isAdmin) {
+            $classes = $classes->whereIn('id', $teacherAssignments->pluck('school_class_id')->unique())->values();
+        }
+
+        $rows = collect();
+        $subjects = collect();
+        $ready = (bool) ($term && $class);
+        if ($ready) {
+            $assignedSubjectIds = null;
+            if (! $isAdmin) {
+                $assignedSubjectIds = TeacherAssignment::query()
+                    ->where('teacher_id', $teacherId ?? 0)
+                    ->where('school_class_id', $class->id)
+                    ->where(function ($query) use ($armId): void {
+                        $query->whereNull('arm_id');
+                        if ($armId) {
+                            $query->orWhere('arm_id', $armId);
+                        }
+                    })
+                    ->pluck('subject_id')->unique()->values();
+            }
+
+            $results = Result::query()
+                ->where('academic_session_id', $term->academic_session_id)
+                ->where('academic_term_id', $term->id)
+                ->where('school_class_id', $class->id)
+                ->when($armId, fn ($query) => $query->where('arm_id', $armId))
+                ->when($assignedSubjectIds !== null, fn ($query) => $query->whereIn('subject_id', $assignedSubjectIds))
+                ->get();
+
+            $rosterIds = Student::query()
+                ->where('status', 'active')
+                ->where('school_class_id', $class->id)
+                ->when($armId, fn ($query) => $query->where('arm_id', $armId))
+                ->pluck('id');
+            $studentIds = $rosterIds->merge($results->pluck('student_id'))->unique()->values();
+            $students = Student::withTrashed()->whereIn('id', $studentIds)->orderBy('last_name')->orderBy('first_name')->get();
+
+            $subjectIds = Subject::query()
+                ->where('status', 'active')
+                ->where(fn ($query) => $query->whereNull('school_class_id')->orWhere('school_class_id', $class->id))
+                ->when($armId, fn ($query) => $query->where(fn ($armQuery) => $armQuery->whereNull('arm_id')->orWhere('arm_id', $armId)))
+                ->pluck('id')
+                ->merge($results->pluck('subject_id'))
+                ->unique()->values();
+            if ($assignedSubjectIds !== null) {
+                $subjectIds = $subjectIds->intersect($assignedSubjectIds)->values();
+            }
+            $subjects = Subject::query()->whereIn('id', $subjectIds)->orderBy('name')->get();
+
+            $resultMap = $results->keyBy(fn (Result $result): string => $result->student_id.':'.$result->subject_id);
+            $subjectStats = $subjects->mapWithKeys(function (Subject $subject) use ($results): array {
+                $scores = $results->where('subject_id', $subject->id)
+                    ->filter(fn (Result $result): bool => $result->is_offered)
+                    ->pluck('total_score')->map(fn ($score): float => (float) $score)->values();
+
+                return [$subject->id => [
+                    'scores' => $scores,
+                    'average' => $scores->isNotEmpty() ? round($scores->avg(), 1) : null,
+                    'highest' => $scores->isNotEmpty() ? (float) $scores->max() : null,
+                    'lowest' => $scores->isNotEmpty() ? (float) $scores->min() : null,
+                    'population' => $scores->count(),
+                ]];
+            });
+
+            $rows = $students->map(function (Student $student) use ($subjects, $resultMap, $subjectStats): array {
+                $subjectRows = $subjects->map(function (Subject $subject) use ($student, $resultMap, $subjectStats): array {
+                    $result = $resultMap->get($student->id.':'.$subject->id);
+                    $stats = $subjectStats->get($subject->id);
+                    $score = $result && $result->is_offered ? (float) $result->total_score : null;
+
+                    return [
+                        'subject' => $subject,
+                        'result' => $result,
+                        'ca1' => $result && $result->is_offered ? (float) $result->ca1_score : null,
+                        'ca2' => $result && $result->is_offered ? (float) $result->ca2_score : null,
+                        'ca3' => $result && $result->is_offered ? (float) $result->ca3_score : null,
+                        'exam' => $result && $result->is_offered ? (float) $result->exam_score : null,
+                        'total' => $score,
+                        'grade' => $result?->grade,
+                        'not_offered' => $result && ! $result->is_offered,
+                        'status' => $result?->status,
+                        'average' => $stats['average'],
+                        'highest' => $stats['highest'],
+                        'lowest' => $stats['lowest'],
+                        'population' => $stats['population'],
+                        'position' => $score === null ? null : 1 + $stats['scores']->filter(fn ($other): bool => (float) $other > $score)->count(),
+                    ];
+                });
+                $offeredRows = $subjectRows->filter(fn (array $row): bool => $row['total'] !== null);
+                $total = round((float) $offeredRows->sum('total'), 2);
+
+                return [
+                    'student' => $student,
+                    'subjects' => $subjectRows,
+                    'total' => $total,
+                    'average' => $offeredRows->isNotEmpty() ? round($total / $offeredRows->count(), 2) : null,
+                    'offered' => $offeredRows->count(),
+                    'position' => null,
+                ];
+            });
+
+            $overallScores = $rows->filter(fn (array $row): bool => $row['average'] !== null)->pluck('average')->all();
+            $rows = $rows->map(function (array $row) use ($isAdmin, $calculator, $overallScores): array {
+                if ($isAdmin && $row['average'] !== null) {
+                    $row['position'] = $calculator->competitionRank((float) $row['average'], $overallScores);
+                }
+
+                return $row;
+            })->sort(function (array $left, array $right): int {
+                $byAverage = ($right['average'] ?? -1) <=> ($left['average'] ?? -1);
+                return $byAverage ?: strcasecmp((string) $left['student']->last_name, (string) $right['student']->last_name);
+            })->values();
+        }
+
+        $viewData = [
+            'isAdmin' => $isAdmin,
+            'ready' => $ready,
+            'sessions' => AcademicSession::query()->with('terms')->orderByDesc('starts_on')->orderByDesc('id')->get(),
+            'classes' => $classes,
+            'term' => $term,
+            'sessionId' => $sessionId,
+            'class' => $class,
+            'armId' => $armId,
+            'subjects' => $subjects,
+            'rows' => $rows,
+            'settings' => \App\Models\SchoolSettings::current(),
+        ];
+
+        if ($ready && $request->query('download') === 'pdf') {
+            return Pdf::loadView('portal.staff.broadsheet-pdf', $viewData)
+                ->setPaper('a3', 'landscape')
+                ->download('class-broadsheet-'.$term->id.'.pdf');
+        }
+
+        return view('portal.staff.broadsheet', $viewData + ['isPdf' => false]);
     }
 
     /** Students of one class (and arm) with Enter / Print actions, as in the school's reference system. */
@@ -133,13 +309,28 @@ class StaffResultsController extends Controller
             return redirect()->route('staff.results')->withErrors(['term' => 'Create an academic session and term first.']);
         }
         $student->loadMissing(['schoolClass', 'arm', 'photo']);
+        $isAdmin = $this->sheets->isAdmin($user);
+        $subjects = $this->sheets->subjectsFor($student);
+        if (! $isAdmin) {
+            $assignedSubjectIds = TeacherAssignment::query()
+                ->where('teacher_id', $this->sheets->teacherId($user) ?? 0)
+                ->where('school_class_id', $student->school_class_id)
+                ->where(function ($query) use ($student): void {
+                    $query->whereNull('arm_id');
+                    if ($student->arm_id) {
+                        $query->orWhere('arm_id', $student->arm_id);
+                    }
+                })
+                ->pluck('subject_id');
+            $subjects = $subjects->whereIn('id', $assignedSubjectIds)->values();
+        }
         $existing = Result::query()
             ->where('student_id', $student->id)
             ->where('academic_session_id', $term->academic_session_id)
             ->where('academic_term_id', $term->id)
             ->get()->keyBy('subject_id');
 
-        $rows = $this->sheets->subjectsFor($student)->map(function ($subject) use ($user, $student, $term, $existing): array {
+        $rows = $subjects->map(function ($subject) use ($user, $student, $term, $existing): array {
             $result = $existing->get($subject->id);
 
             return [
@@ -160,8 +351,8 @@ class StaffResultsController extends Controller
             'traits' => AffectiveTrait::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
             'ratings' => AffectiveRating::query()->where('student_id', $student->id)->where('academic_session_id', $term->academic_session_id)->where('academic_term_id', $term->id)->pluck('rating', 'trait_id'),
             'remark' => $remark,
-            'isAdmin' => $this->sheets->isAdmin($user),
-            'termOpen' => $this->sheets->isAdmin($user) || $term->is_current,
+            'isAdmin' => $isAdmin,
+            'termOpen' => $isAdmin || $term->is_current,
         ]);
     }
 
@@ -395,6 +586,7 @@ class StaffResultsController extends Controller
             'q' => $data['q'] ?? '',
             'sessionId' => $sessionId,
             'termId' => $termId,
+            'isAdmin' => $isAdmin,
         ]);
     }
 

@@ -16,6 +16,7 @@
             <li><a href="{{ route('portal.dashboard') }}">Dashboard</a></li>
             <li><a href="{{ route('staff.results') }}"@if(($current ?? '') === 'results') aria-current="page"@endif>Manage results</a></li>
             <li><a href="{{ route('staff.results.archive') }}"@if(($current ?? '') === 'archive') aria-current="page"@endif>Reports archive</a></li>
+            <li><a href="{{ route('staff.results.broadsheet') }}"@if(($current ?? '') === 'broadsheet') aria-current="page"@endif>Class broadsheet</a></li>
         </ul>
     </div>
 </nav>

@@ -50,6 +50,17 @@ class StudentAccessTest extends TestCase
         SchoolSettings::current()->forceFill($values)->save();
     }
 
+    private function publishResultFor(AcademicTerm $term): void
+    {
+        $subject = Subject::query()->firstOrFail();
+        Result::query()->create([
+            'student_id' => $this->student->id, 'subject_id' => $subject->id, 'school_class_id' => $this->student->school_class_id,
+            'academic_session_id' => $term->academic_session_id, 'academic_term_id' => $term->id,
+            'ca1_score' => 10, 'ca2_score' => 0, 'ca3_score' => 0, 'exam_score' => 40, 'total_score' => 50,
+            'is_offered' => true, 'grade' => 'C', 'remark' => 'Good', 'status' => 'published', 'published_at' => now(),
+        ]);
+    }
+
     #[Test]
     public function a_student_can_sign_in_with_admission_number_and_surname_and_gets_an_account(): void
     {
@@ -159,6 +170,44 @@ class StudentAccessTest extends TestCase
 
         $url = \Illuminate\Support\Facades\URL::temporarySignedRoute('result-check.report', now()->addMinutes(5), ['student' => $this->student->id, 'term' => $this->term->id]);
         $this->get($url)->assertOk()->assertSee('Okoro');
+    }
+
+    #[Test]
+    public function the_public_checker_lists_only_the_current_published_term(): void
+    {
+        $historicalTerm = AcademicTerm::query()->create([
+            'academic_session_id' => $this->term->academic_session_id,
+            'name' => 'Second Term',
+            'sequence' => 2,
+            'is_current' => false,
+        ]);
+        $this->publishResultFor($historicalTerm);
+        $this->settings(['public_result_check_enabled' => true]);
+
+        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO'])
+            ->assertOk()
+            ->assertSee('First Term')
+            ->assertDontSee('Second Term');
+    }
+
+    #[Test]
+    public function a_signed_public_report_link_for_a_non_current_term_is_rejected(): void
+    {
+        $historicalTerm = AcademicTerm::query()->create([
+            'academic_session_id' => $this->term->academic_session_id,
+            'name' => 'Second Term',
+            'sequence' => 2,
+            'is_current' => false,
+        ]);
+        $this->publishResultFor($historicalTerm);
+        $this->settings(['public_result_check_enabled' => true]);
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'result-check.report',
+            now()->addMinutes(5),
+            ['student' => $this->student->id, 'term' => $historicalTerm->id],
+        );
+
+        $this->get($url)->assertNotFound();
     }
 
     #[Test]

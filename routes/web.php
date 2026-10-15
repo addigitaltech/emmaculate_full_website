@@ -60,6 +60,7 @@ Route::middleware(['auth', 'portal.enabled'])->group(function (): void {
         Route::get('/results', [StaffResultsController::class, 'home'])->name('results');
         Route::get('/results/class', [StaffResultsController::class, 'students'])->name('results.class');
         Route::get('/results/archive', [StaffResultsController::class, 'archive'])->name('results.archive');
+        Route::get('/results/broadsheet', [StaffResultsController::class, 'broadsheet'])->name('results.broadsheet');
         Route::post('/results/publish', [StaffResultsController::class, 'publishClass'])->middleware('permission:publish results')->name('results.publish-class');
         Route::post('/results/unpublish', [StaffResultsController::class, 'unpublishClass'])->middleware('permission:publish results')->name('results.unpublish-class');
         Route::get('/results/student/{student}', [StaffResultsController::class, 'studentSheet'])->whereNumber('student')->name('results.student');

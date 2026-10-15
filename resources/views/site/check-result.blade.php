@@ -11,7 +11,7 @@
             <div class="card card--pad">
                 <h2 class="h3">{{ $student->fullName() }}</h2>
                 <p class="muted" style="margin:.2rem 0 1rem">{{ $student->student_number }} &middot; {{ $student->schoolClass?->name }}@if($student->arm) ({{ $student->arm->name }})@endif</p>
-                <p style="margin:0 0 .6rem;font-weight:600">Choose a term to view and print:</p>
+                <p style="margin:0 0 .6rem;font-weight:600">Current published term:</p>
                 <ul class="report-list">
                     @foreach($links as $link)
                         <li><a href="{{ $link['url'] }}" target="_blank" rel="noopener"><span>{{ $link['term']->session?->name }} &middot; {{ $link['term']->name }}</span><span class="link-action link-action--blue" style="margin:0">View / print</span></a></li>

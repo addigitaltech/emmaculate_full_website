@@ -18,7 +18,7 @@ use Illuminate\View\View;
 
 /**
  * Public "check my result" page for when student and parent portals are switched off.
- * Admission number + surname, published results only, read-only, links expire after 20 minutes.
+ * Admission number + surname, current published term only, read-only, links expire after 20 minutes.
  */
 class ResultCheckController extends Controller
 {
@@ -49,9 +49,12 @@ class ResultCheckController extends Controller
             return back()->withErrors(['admission_number' => self::GENERIC_ERROR])->onlyInput('admission_number');
         }
 
-        $termIds = Result::published()->where('student_id', $student->id)->pluck('academic_term_id')->unique();
-        $terms = AcademicTerm::query()->with('session')->whereIn('id', $termIds)->orderByDesc('academic_session_id')->orderByDesc('sequence')->get();
-        if ($terms->isEmpty()) {
+        $term = AcademicTerm::query()
+            ->with('session')
+            ->where('is_current', true)
+            ->whereHas('session', fn ($query) => $query->where('is_active', true))
+            ->first();
+        if (! $term || ! Result::published()->where('student_id', $student->id)->where('academic_term_id', $term->id)->exists()) {
             return back()->withErrors(['admission_number' => self::GENERIC_ERROR])->onlyInput('admission_number');
         }
         if (PortalAccess::feesBlockResults($student)) {
@@ -60,10 +63,10 @@ class ResultCheckController extends Controller
 
         RateLimiter::clear($key);
         AuditLog::record(null, 'results.public_check', $student);
-        $links = $terms->map(fn (AcademicTerm $term) => [
+        $links = [[
             'term' => $term,
             'url' => URL::temporarySignedRoute('result-check.report', now()->addMinutes(20), ['student' => $student->id, 'term' => $term->id]),
-        ])->all();
+        ]];
 
         return $this->page(['enabled' => true, 'student' => $student->loadMissing('schoolClass', 'arm'), 'links' => $links]);
     }
@@ -72,6 +75,7 @@ class ResultCheckController extends Controller
     {
         abort_unless(PortalAccess::checkerEnabled(), 404);
         abort_unless($student->status === 'active', 404);
+        abort_unless($term->is_current && $term->session()->where('is_active', true)->exists(), 404);
         abort_unless(Result::published()->where('student_id', $student->id)->where('academic_term_id', $term->id)->exists(), 404);
         abort_if(PortalAccess::feesBlockResults($student), 403);
 

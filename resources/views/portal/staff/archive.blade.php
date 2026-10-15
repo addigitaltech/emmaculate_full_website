@@ -26,7 +26,7 @@
                     <tr>
                         <td><strong>{{ strtoupper($student->last_name) }}</strong>, {{ trim($student->first_name.' '.$student->other_names) }}<div class="muted" style="font-size:.75rem">{{ $student->student_number }}</div></td>
                         <td>{{ $student->schoolClass?->name ?: '—' }}@if($student->arm) ({{ $student->arm->name }})@endif</td>
-                        <td>@foreach(($termsByStudent[$student->id] ?? []) as $reportTerm)<a class="link-action link-action--blue" style="margin:0 .9rem .3rem 0" target="_blank" rel="noopener" href="{{ route('reports.show', ['student' => $student->id, 'term' => $reportTerm->id]) }}">{{ $reportTerm->session?->name }} · {{ $reportTerm->name }}</a>@endforeach</td>
+                        <td>@if($isAdmin)@foreach(($termsByStudent[$student->id] ?? []) as $reportTerm)<a class="link-action link-action--blue" style="margin:0 .9rem .3rem 0" target="_blank" rel="noopener" href="{{ route('reports.show', ['student' => $student->id, 'term' => $reportTerm->id]) }}">{{ $reportTerm->session?->name }} · {{ $reportTerm->name }}</a>@endforeach @else<span class="muted">Use assigned subject sheets for result access.</span>@endif</td>
                     </tr>
                 @empty
                     <tr><td colspan="3"><p class="empty-state" style="margin:.6rem 0">No reports match your search.</p></td></tr>

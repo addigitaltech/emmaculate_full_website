@@ -22,6 +22,11 @@ class SchoolClassResource extends AuthorizedResource
         return $form->schema([
             Forms\Components\TextInput::make('name')->required()->maxLength(100)->unique(ignoreRecord: true),
             Forms\Components\TextInput::make('level')->maxLength(100),
+            Forms\Components\Select::make('next_class_id')->label('Next class for promotion')
+                ->options(fn (?SchoolClass $record): array => SchoolClass::query()->where('is_active', true)
+                    ->when($record?->exists, fn ($query) => $query->whereKeyNot($record->id))
+                    ->orderBy('name')->pluck('name', 'id')->all())
+                ->searchable()->placeholder('No automatic path; flagged for review'),
             Forms\Components\Toggle::make('is_active')->default(true)->required(),
             Forms\Components\Select::make('arms')->relationship('arms', 'name')->multiple()->searchable()->preload()->columnSpanFull(),
         ])->columns(2);
@@ -32,6 +37,7 @@ class SchoolClassResource extends AuthorizedResource
         return $table->modifyQueryUsing(fn ($query) => $query->with('arms'))->columns([
             Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('level')->searchable(),
+            Tables\Columns\TextColumn::make('nextClass.name')->label('Promotion to'),
             Tables\Columns\TextColumn::make('arms.name')->label('Arms')->badge()->separator(', '),
             Tables\Columns\IconColumn::make('is_active')->boolean(),
         ])->actions([Tables\Actions\EditAction::make()])->bulkActions([]);

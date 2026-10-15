@@ -1,6 +1,8 @@
 @php
     $showCa2 = collect($rows)->contains(fn ($row) => ($row['maxima']['ca2'] ?? 0) > 0);
     $showCa3 = collect($rows)->contains(fn ($row) => ($row['maxima']['ca3'] ?? 0) > 0);
+    $showCumulative = (int) $term->sequence > 1;
+    $columnCount = 10 + (int) $showCa2 + (int) $showCa3 + ($showCumulative ? 2 : 0);
     $logoSrc = $logoPath ? ($isPdf ? 'file://'.$logoPath : asset('storage/'.$settings->logo_path)) : null;
     $photoSrc = $photoPath ? ($isPdf ? 'file://'.$photoPath : $student->photo?->url()) : null;
     $failGrade = collect($bands)->sortBy('min_score')->first()['grade'] ?? 'F';
@@ -37,6 +39,8 @@ table { border-collapse: collapse; width: 100%; }
 .grid td { padding: 4px; border: 1px solid #cfc8bf; text-align: center; }
 .grid tr.alt td { background: #f7f2ee; }
 .grid td.sub { font-weight: bold; text-align: left; }
+.grid--cumulative { font-size: 8px; }
+.grid--cumulative th, .grid--cumulative td { padding: 3px 2px; }
 .grade { font-weight: bold; color: #041433; }
 .grade.fail { color: #b3121f; }
 .two td.col { vertical-align: top; }
@@ -74,37 +78,38 @@ table { border-collapse: collapse; width: 100%; }
     <div class="rule"></div>
     <div class="title">{{ $term->name }} report &mdash; {{ $term->session?->name }} academic session</div>
     <table class="info">
-        <tr><td class="k">Full name</td><td class="v">{{ strtoupper($student->last_name) }} {{ trim($student->first_name.' '.$student->other_names) }}</td><td class="k">Class (arm)</td><td class="v">{{ $student->schoolClass?->name }}@if($student->arm) ({{ $student->arm->name }})@endif</td></tr>
+        <tr><td class="k">Full name</td><td class="v">{{ strtoupper($student->last_name) }} {{ trim($student->first_name.' '.$student->other_names) }}</td><td class="k">Class (arm)</td><td class="v">{{ $reportClass?->name ?: '—' }}@if($reportArm) ({{ $reportArm->name }})@endif</td></tr>
         <tr><td class="k">Gender</td><td class="v">{{ $student->gender ?: '—' }}</td><td class="k">Student ID</td><td class="v">{{ $student->student_number }}</td></tr>
         <tr><td class="k">Date of birth (age)</td><td class="v">{{ $student->date_of_birth ? $student->date_of_birth->format('Y-m-d').' ('.$student->date_of_birth->age.' years)' : '—' }}</td><td class="k">Report for</td><td class="v">{{ $term->name }}, {{ $term->session?->name }}</td></tr>
     </table>
 
-    <table class="grid" style="margin-top:8px">
-        <thead><tr><th class="l">Subject</th><th>CA 1</th>@if($showCa2)<th>CA 2</th>@endif @if($showCa3)<th>CA 3</th>@endif<th>Exam</th><th>Total</th><th>Class avg</th><th>Highest</th><th>Lowest</th><th>Position</th><th>Grade</th><th class="l">Remark</th></tr></thead>
+    <table class="grid{{ $showCumulative ? ' grid--cumulative' : '' }}" style="margin-top:8px">
+        <thead><tr><th class="l">Subject</th><th>CA 1</th>@if($showCa2)<th>CA 2</th>@endif @if($showCa3)<th>CA 3</th>@endif<th>Exam</th><th>Total</th>@if($showCumulative)<th>Cumulative total</th><th>Cumulative average</th>@endif<th>Class avg</th><th>Highest</th><th>Lowest</th><th>Position</th><th>Grade</th><th class="l">Remark</th></tr></thead>
         <tbody>
         @forelse($rows as $row)
             <tr class="{{ $loop->even ? 'alt' : '' }}">
                 <td class="sub">{{ $row['subject'] }}</td>
                 <td>{{ $fmt($row['ca1']) }}</td>@if($showCa2)<td>{{ $fmt($row['ca2']) }}</td>@endif @if($showCa3)<td>{{ $fmt($row['ca3']) }}</td>@endif
-                <td>{{ $fmt($row['exam']) }}</td><td><strong>{{ $fmt($row['total']) }}</strong></td>
+                <td>{{ $fmt($row['exam']) }}</td><td><strong>{{ $fmt($row['total']) }}</strong></td>@if($showCumulative)<td>{{ $fmt($row['cumulative_total']) }}</td><td>{{ $row['cumulative_average'] }}%</td>@endif
                 <td>{{ $fmt($row['average']) }}</td><td>{{ $fmt($row['highest']) }}</td><td>{{ $fmt($row['lowest']) }}</td>
                 <td>{{ $row['position'] }}/{{ $row['population'] }}</td>
                 <td class="grade{{ $row['grade'] === $failGrade ? ' fail' : '' }}">{{ $row['grade'] }}</td>
                 <td class="l">{{ $row['remark'] }}</td>
             </tr>
         @empty
-            <tr><td colspan="12" style="padding:14px;color:#566070">No results are available for this term yet.</td></tr>
+            <tr><td colspan="{{ $columnCount }}" style="padding:14px;color:#566070">No results are available for this term yet.</td></tr>
         @endforelse
         </tbody>
     </table>
+    @if($showCumulative)<p class="key">Cumulative figures include only {{ $includeUnpublished ? 'published or pending' : 'published' }} results saved for this student through {{ $term->name }}. Terms without a saved score are omitted.</p>@endif
 
     <table class="two" style="margin-top:10px"><tr>
         <td class="col" style="width:38%;padding-right:10px">
             <table class="box">
                 <tr><th colspan="2">Result summary</th></tr>
-                <tr><td>Total students in {{ $student->schoolClass?->name }}</td><td class="r">{{ $summary['class_total'] ?: '—' }}</td></tr>
+                <tr><td>Total students in {{ $reportClass?->name ?: 'class' }}</td><td class="r">{{ $summary['class_total'] ?: '—' }}</td></tr>
                 <tr><td>Class term position</td><td class="r">{{ $summary['class_position'] ?: '—' }}</td></tr>
-                @if($student->arm)<tr><td>Total students in {{ $student->schoolClass?->name }} ({{ $student->arm->name }})</td><td class="r">{{ $summary['arm_total'] ?: '—' }}</td></tr>
+                @if($reportArm)<tr><td>Total students in {{ $reportClass?->name ?: 'class' }} ({{ $reportArm->name }})</td><td class="r">{{ $summary['arm_total'] ?: '—' }}</td></tr>
                 <tr><td>Class arm position</td><td class="r">{{ $summary['arm_position'] ?: '—' }}</td></tr>@endif
                 <tr><td>Total term score</td><td class="r">{{ $fmt($summary['total_score']) }}</td></tr>
                 <tr><td>Average term score</td><td class="r">{{ number_format($summary['average'], 2) }}% ({{ $summary['overall']['grade'] }})</td></tr>

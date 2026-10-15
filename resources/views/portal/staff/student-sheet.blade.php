@@ -17,7 +17,7 @@
         </div>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap">
             <a class="btn btn--outline btn--sm" href="{{ route('staff.results.class', ['class' => $student->school_class_id, 'arm' => $student->arm_id, 'term' => $term->id]) }}">&larr; Class list</a>
-            <a class="btn btn--navy btn--sm" target="_blank" rel="noopener" href="{{ route('reports.show', ['student' => $student->id, 'term' => $term->id]) }}">Print result</a>
+            @if($isAdmin)<a class="btn btn--navy btn--sm" target="_blank" rel="noopener" href="{{ route('reports.show', ['student' => $student->id, 'term' => $term->id]) }}">Print result</a>@endif
         </div>
     </div></div>
 

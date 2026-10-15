@@ -34,6 +34,7 @@ class Student extends Model
     public function photo() { return $this->belongsTo(MediaAsset::class, 'photo_id'); }
     public function parents() { return $this->belongsToMany(ParentProfile::class, 'parent_student', 'student_id', 'parent_id')->withPivot('relationship')->withTimestamps(); }
     public function results() { return $this->hasMany(Result::class); }
+    public function promotions() { return $this->hasMany(StudentPromotion::class); }
     public function feeAssignments() { return $this->hasMany(StudentFeeAssignment::class); }
     public function fullName(): string { return trim(implode(' ', array_filter([$this->first_name, $this->other_names, $this->last_name]))); }
 }

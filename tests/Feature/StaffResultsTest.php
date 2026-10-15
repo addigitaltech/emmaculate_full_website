@@ -147,6 +147,138 @@ class StaffResultsTest extends TestCase
     }
 
     #[Test]
+    public function cumulative_report_cards_include_only_results_through_the_selected_term(): void
+    {
+        $secondTerm = AcademicTerm::query()->create([
+            'academic_session_id' => $this->term->academic_session_id,
+            'name' => 'Second Term',
+            'sequence' => 2,
+            'is_current' => false,
+        ]);
+        $thirdTerm = AcademicTerm::query()->create([
+            'academic_session_id' => $this->term->academic_session_id,
+            'name' => 'Third Term',
+            'sequence' => 3,
+            'is_current' => false,
+        ]);
+        $results = [
+            1 => $this->publishedResultFor($this->term, 60),
+            2 => $this->publishedResultFor($secondTerm, 80),
+            3 => $this->publishedResultFor($thirdTerm, 100),
+        ];
+        $admin = User::factory()->create();
+        $admin->assignRole('Super Admin');
+        $this->actingAs($admin);
+        $this->otherClass->arms()->attach($this->student->arm_id);
+        $this->student->update(['school_class_id' => $this->otherClass->id]);
+
+        $this->get(route('reports.show', ['student' => $this->student->id, 'term' => $this->term->id]))
+            ->assertOk()
+            ->assertSee('JSS1')
+            ->assertDontSee('JSS2')
+            ->assertDontSee('Cumulative total');
+
+        $this->get(route('reports.show', ['student' => $this->student->id, 'term' => $secondTerm->id]))
+            ->assertOk()
+            ->assertSee('JSS1')
+            ->assertDontSee('JSS2')
+            ->assertSee('Cumulative total')
+            ->assertSee('140')
+            ->assertSee('70%');
+
+        $this->get(route('reports.show', ['student' => $this->student->id, 'term' => $thirdTerm->id]))
+            ->assertOk()
+            ->assertSee('Cumulative total')
+            ->assertSee('240')
+            ->assertSee('80%');
+
+        $this->get(route('results.report', ['result' => $results[2]->id]))
+            ->assertOk()
+            ->assertSee('JSS1')
+            ->assertDontSee('JSS2')
+            ->assertSee('Cumulative total')
+            ->assertSee('140')
+            ->assertSee('70%');
+    }
+
+    #[Test]
+    public function an_admin_can_view_and_download_a_ranked_class_broadsheet(): void
+    {
+        $secondStudent = Student::query()->create([
+            'student_number' => 'S3',
+            'first_name' => 'Chika',
+            'last_name' => 'Nwosu',
+            'school_class_id' => $this->class->id,
+            'arm_id' => $this->student->arm_id,
+            'status' => 'active',
+        ]);
+        $this->publishedResultFor($this->term, 80, $this->student, $this->maths);
+        $this->publishedResultFor($this->term, 70, $this->student, $this->english);
+        $this->publishedResultFor($this->term, 60, $secondStudent, $this->maths);
+        $this->publishedResultFor($this->term, 50, $secondStudent, $this->english);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('Super Admin');
+        $filters = [
+            'session' => $this->term->academic_session_id,
+            'term' => $this->term->id,
+            'class' => $this->class->id,
+            'arm' => $this->student->arm_id,
+        ];
+
+        $this->actingAs($admin)->get(route('staff.results.broadsheet', $filters))
+            ->assertOk()
+            ->assertSee('Mathematics')
+            ->assertSee('English')
+            ->assertSee('Overall position')
+            ->assertSee('Okoro, Ada')
+            ->assertSee('1 of 2');
+
+        $this->get(route('staff.results.broadsheet', $filters + ['download' => 'pdf']))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    #[Test]
+    public function a_teacher_broadsheet_is_limited_to_assigned_subjects_and_classes(): void
+    {
+        $this->publishedResultFor($this->term, 80, $this->student, $this->maths);
+        $this->publishedResultFor($this->term, 70, $this->student, $this->english);
+        $filters = [
+            'session' => $this->term->academic_session_id,
+            'term' => $this->term->id,
+            'class' => $this->class->id,
+            'arm' => $this->student->arm_id,
+        ];
+
+        $this->actingAs($this->teacher)->get(route('staff.results.broadsheet', $filters))
+            ->assertOk()
+            ->assertSee('Mathematics')
+            ->assertDontSee('English')
+            ->assertSee('overall rank is intentionally not shown');
+
+        $this->get(route('staff.results.broadsheet', array_merge($filters, ['class' => $this->otherClass->id, 'arm' => null])))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function teacher_score_sheets_and_full_report_routes_respect_subject_scope(): void
+    {
+        $this->actingAs($this->teacher)
+            ->get(route('staff.results.student', ['student' => $this->student->id, 'term' => $this->term->id]))
+            ->assertOk()
+            ->assertSee('Mathematics')
+            ->assertDontSee('English')
+            ->assertDontSee('Print result');
+
+        $result = $this->publishedResultFor($this->term, 80, $this->student, $this->maths);
+        $this->get(route('reports.show', ['student' => $this->student->id, 'term' => $this->term->id]))
+            ->assertForbidden();
+        $this->get(route('results.report', ['result' => $result->id]))
+            ->assertForbidden();
+    }
+
+    #[Test]
     public function a_published_line_cannot_be_changed_by_a_teacher(): void
     {
         $this->actingAs($this->teacher)->post(route('staff.results.subject.save', $this->assignment), [
@@ -173,5 +305,30 @@ class StaffResultsTest extends TestCase
     public function the_footer_links_to_the_admin_login(): void
     {
         $this->get('/')->assertOk()->assertSee('Admin login');
+    }
+
+    private function publishedResultFor(AcademicTerm $term, int $score, ?Student $student = null, ?Subject $subject = null): Result
+    {
+        $student ??= $this->student;
+        $subject ??= $this->maths;
+
+        return Result::query()->create([
+            'student_id' => $student->id,
+            'subject_id' => $subject->id,
+            'school_class_id' => $this->class->id,
+            'arm_id' => $student->arm_id,
+            'academic_session_id' => $term->academic_session_id,
+            'academic_term_id' => $term->id,
+            'ca1_score' => $score * 0.4,
+            'ca2_score' => 0,
+            'ca3_score' => 0,
+            'exam_score' => $score * 0.6,
+            'total_score' => $score,
+            'is_offered' => true,
+            'grade' => 'B',
+            'remark' => 'Very Good',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
     }
 }
