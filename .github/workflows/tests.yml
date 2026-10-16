@@ -1,0 +1,97 @@
+name: Tests
+
+# Runs the whole test suite on the three database engines this project must support:
+# SQLite (fast checks), MySQL (the cPanel production target) and PostgreSQL (the Render test site).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Tests on ${{ matrix.db }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, mysql, pgsql]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: school_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppassword"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: school_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, bcmath, exif, fileinfo, dom, xml, curl, pdo_sqlite, pdo_mysql, pdo_pgsql
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install and build front-end assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Run tests (SQLite)
+        if: matrix.db == 'sqlite'
+        run: vendor/bin/phpunit
+
+      - name: Run tests (MySQL)
+        if: matrix.db == 'mysql'
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: school_test
+          DB_USERNAME: root
+          DB_PASSWORD: password
+        run: |
+          sed '/name="DB_CONNECTION"/d;/name="DB_DATABASE"/d' phpunit.xml > phpunit.ci.xml
+          vendor/bin/phpunit --configuration=phpunit.ci.xml --process-isolation
+
+      - name: Run tests (PostgreSQL)
+        if: matrix.db == 'pgsql'
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: school_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+        run: |
+          sed '/name="DB_CONNECTION"/d;/name="DB_DATABASE"/d' phpunit.xml > phpunit.ci.xml
+          vendor/bin/phpunit --configuration=phpunit.ci.xml --process-isolation

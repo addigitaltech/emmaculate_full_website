@@ -192,13 +192,9 @@ class StaffResultsTest extends TestCase
             ->assertSee('240')
             ->assertSee('80%');
 
+        // The older single-result link now hands over to the one report page.
         $this->get(route('results.report', ['result' => $results[2]->id]))
-            ->assertOk()
-            ->assertSee('JSS1')
-            ->assertDontSee('JSS2')
-            ->assertSee('Cumulative total')
-            ->assertSee('140')
-            ->assertSee('70%');
+            ->assertRedirect(route('reports.show', ['student' => $this->student->id, 'term' => $secondTerm->id]));
     }
 
     #[Test]

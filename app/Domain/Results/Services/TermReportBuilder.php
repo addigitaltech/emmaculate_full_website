@@ -44,15 +44,25 @@ final class TermReportBuilder
         $reportClass = $classId ? SchoolClass::query()->find($classId) : null;
         $reportArm = $armId ? Arm::query()->find($armId) : null;
 
+        // Positions and class statistics are ranked among EVERY entered result of the class and term
+        // (draft, pending or published), so a position does not depend on how far publishing has got.
         $population = Result::query()
             ->where('academic_session_id', $term->academic_session_id)
             ->where('academic_term_id', $term->id)
             ->where('school_class_id', $classId)
             ->where('is_offered', true)
-            ->when($includeUnpublished, fn ($query) => $query->whereIn('status', ['pending', 'published']), fn ($query) => $query->published())
             ->get();
 
-        $mine = $population->where('student_id', $student->id)->values();
+        // The student's own lines are fetched directly (not from the class population) so a student who
+        // was moved between classes mid-term never silently loses subjects. Students and parents only
+        // ever see published lines.
+        $mine = Result::query()
+            ->where('student_id', $student->id)
+            ->where('academic_session_id', $term->academic_session_id)
+            ->where('academic_term_id', $term->id)
+            ->where('is_offered', true)
+            ->when($includeUnpublished, fn ($query) => $query->whereIn('status', ['pending', 'published']), fn ($query) => $query->published())
+            ->get();
         $subjects = $mine->isEmpty()
             ? collect()
             : \App\Models\Subject::query()->whereIn('id', $mine->pluck('subject_id'))->orderBy('name')->get()->keyBy('id');
@@ -92,7 +102,7 @@ final class TermReportBuilder
                 'average' => $scores->isNotEmpty() ? round($scores->avg(), 1) : 0.0,
                 'highest' => $scores->isNotEmpty() ? (float) $scores->max() : 0.0,
                 'lowest' => $scores->isNotEmpty() ? (float) $scores->min() : 0.0,
-                'position' => 1 + $scores->filter(fn ($other) => $other > $score)->count(),
+                'position' => 1 + $scores->filter(fn ($other) => round((float) $other, 2) > round($score, 2))->count(),
                 'population' => $scores->count(),
                 'maxima' => $maxima,
                 'status' => $result->status,
@@ -164,7 +174,7 @@ final class TermReportBuilder
     /** @return Collection<int, float> student id => average total score across offered subjects */
     private function averages(Collection $rows): Collection
     {
-        return $rows->groupBy('student_id')->map(fn (Collection $studentRows): float => (float) $studentRows->avg(fn (Result $result) => (float) $result->total_score));
+        return $rows->groupBy('student_id')->map(fn (Collection $studentRows): float => round((float) $studentRows->avg(fn (Result $result) => (float) $result->total_score), 2));
     }
 
     private function rank(Collection $averages, int $studentId): ?int
@@ -172,8 +182,8 @@ final class TermReportBuilder
         if (! $averages->has($studentId)) {
             return null;
         }
-        $score = (float) $averages->get($studentId);
+        $score = round((float) $averages->get($studentId), 2);
 
-        return 1 + $averages->filter(fn ($other) => (float) $other > $score)->count();
+        return 1 + $averages->filter(fn ($other) => round((float) $other, 2) > $score)->count();
     }
 }

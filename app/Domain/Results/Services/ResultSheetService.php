@@ -203,7 +203,14 @@ final class ResultSheetService
         });
     }
 
-    /** Publish every pending result of a class (and arm) for a term. Returns how many were published. */
+    /**
+     * Publish every pending result of a class (and arm) for a term. Returns how many were published.
+     *
+     * Each result is recomputed from its stored component scores using the CURRENT score split and grade
+     * bands first, so changing the assessment settings after scores were saved can never publish a stale
+     * total or grade. If any stored score no longer fits the current maxima, nothing is published and the
+     * administrator is told exactly which lines to correct.
+     */
     public function publishClass(User $actor, int $classId, ?int $armId, AcademicTerm $term): int
     {
         $count = 0;
@@ -214,9 +221,22 @@ final class ResultSheetService
             ->where('academic_term_id', $term->id)
             ->whereIn('status', ['pending', 'draft'])
             ->pluck('id');
+        $bands = $this->gradeBands();
 
-        DB::transaction(function () use ($ids, $actor, $term, &$count): void {
-            foreach (Result::query()->whereIn('id', $ids)->lockForUpdate()->get() as $result) {
+        DB::transaction(function () use ($ids, $actor, $term, $bands, &$count): void {
+            $problems = [];
+            $rows = Result::query()->with(['student', 'subject'])->whereIn('id', $ids)->lockForUpdate()->get();
+            foreach ($rows as $result) {
+                try {
+                    $this->recompute($result, $term, $bands);
+                } catch (InvalidArgumentException $exception) {
+                    $problems[] = ($result->student?->fullName() ?? 'Student #'.$result->student_id).' — '.($result->subject?->name ?? 'subject').': '.$exception->getMessage();
+                }
+            }
+            if ($problems !== []) {
+                throw ValidationException::withMessages(['publish' => 'Nothing was published. These scores no longer fit the current assessment settings and must be corrected first: '.implode('; ', array_slice($problems, 0, 10)).(count($problems) > 10 ? '; and '.(count($problems) - 10).' more.' : '')]);
+            }
+            foreach ($rows as $result) {
                 $result->update(['status' => 'published', 'published_by' => $actor->id, 'published_at' => now()]);
                 $count++;
             }
@@ -224,6 +244,49 @@ final class ResultSheetService
         });
 
         return $count;
+    }
+
+    /** Publish a single pending result (used by the older per-result route) with the same recompute rules. */
+    public function publishResult(User $actor, Result $result): Result
+    {
+        $term = AcademicTerm::query()->findOrFail($result->academic_term_id);
+        $bands = $this->gradeBands();
+
+        return DB::transaction(function () use ($actor, $result, $term, $bands): Result {
+            $locked = Result::query()->with(['student', 'subject'])->lockForUpdate()->findOrFail($result->id);
+            if ($locked->status === 'published') {
+                return $locked;
+            }
+            try {
+                $this->recompute($locked, $term, $bands);
+            } catch (InvalidArgumentException $exception) {
+                throw ValidationException::withMessages(['publish' => 'This score no longer fits the current assessment settings: '.$exception->getMessage()]);
+            }
+            $locked->update(['status' => 'published', 'published_by' => $actor->id, 'published_at' => now()]);
+            AuditLog::record($actor, 'results.published', $locked, ['student_id' => $locked->student_id, 'subject_id' => $locked->subject_id, 'academic_term_id' => $locked->academic_term_id]);
+
+            return $locked;
+        });
+    }
+
+    /** Recompute total, grade and remark from stored component scores with the current maxima and grade bands. */
+    private function recompute(Result $result, AcademicTerm $term, array $bands): void
+    {
+        if (! $result->is_offered) {
+            return;
+        }
+        $maxima = $this->maxima((int) $term->academic_session_id, (int) $term->id, $result->school_class_id, (int) $result->subject_id);
+        $computed = $this->calculator->calculate([
+            'ca1' => $result->ca1_score,
+            'ca2' => $result->ca2_score,
+            'ca3' => $result->ca3_score,
+            'exam' => $result->exam_score,
+        ], $maxima, $bands);
+        $result->fill([
+            'total_score' => $computed['total_score'],
+            'grade' => $computed['grade'],
+            'remark' => $computed['remark'],
+        ])->save();
     }
 
     /** Return published results to "pending" so a correction can be made; always recorded with a reason. */
