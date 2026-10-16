@@ -27,6 +27,7 @@ class InitialiseSchool extends Command
         }
 
         $this->bootstrapAdmin();
+        $this->call('school:sync-people');
         \App\Support\SiteCache::flush();
 
         return self::SUCCESS;

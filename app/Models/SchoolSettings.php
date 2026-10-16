@@ -8,11 +8,11 @@ use Illuminate\Validation\ValidationException;
 
 class SchoolSettings extends Model
 {
-    protected $fillable = ['school_name', 'short_name', 'motto', 'description', 'logo_path', 'favicon_path', 'address', 'phone_primary', 'phone_secondary', 'email', 'whatsapp', 'office_hours', 'social_links', 'theme_tokens', 'verified_stats', 'ca1_max_score', 'ca2_max_score', 'ca3_max_score', 'exam_max_score', 'pass_percentage', 'highlight_fail_grade', 'payment_gate_results', 'result_access_mode', 'student_portal_enabled', 'parent_portal_enabled', 'public_result_check_enabled', 'promotion_mode', 'promotion_min_average', 'promotion_min_subjects_passed', 'gps_location', 'show_admin_link', 'mission', 'vision', 'pledge', 'anthem', 'identity_closing', 'canonical_base_url', 'global_settings'];
+    protected $fillable = ['school_name', 'short_name', 'motto', 'description', 'logo_path', 'favicon_path', 'address', 'phone_primary', 'phone_secondary', 'email', 'whatsapp', 'office_hours', 'social_links', 'theme_tokens', 'verified_stats', 'ca1_max_score', 'ca2_max_score', 'ca3_max_score', 'exam_max_score', 'pass_percentage', 'highlight_fail_grade', 'payment_gate_results', 'result_access_mode', 'student_portal_enabled', 'parent_portal_enabled', 'staff_portal_enabled', 'admission_portal_enabled', 'public_result_check_enabled', 'promotion_mode', 'promotion_min_average', 'promotion_min_subjects_passed', 'gps_location', 'show_admin_link', 'mission', 'vision', 'pledge', 'anthem', 'identity_closing', 'canonical_base_url', 'global_settings'];
 
     protected function casts(): array
     {
-        return ['social_links' => 'array', 'theme_tokens' => 'array', 'verified_stats' => 'array', 'global_settings' => 'array', 'highlight_fail_grade' => 'boolean', 'payment_gate_results' => 'boolean', 'student_portal_enabled' => 'boolean', 'show_admin_link' => 'boolean', 'parent_portal_enabled' => 'boolean', 'public_result_check_enabled' => 'boolean', 'ca1_max_score' => 'integer', 'ca2_max_score' => 'integer', 'ca3_max_score' => 'integer', 'exam_max_score' => 'integer', 'pass_percentage' => 'integer', 'promotion_min_average' => 'decimal:2', 'promotion_min_subjects_passed' => 'integer'];
+        return ['social_links' => 'array', 'theme_tokens' => 'array', 'verified_stats' => 'array', 'global_settings' => 'array', 'highlight_fail_grade' => 'boolean', 'payment_gate_results' => 'boolean', 'student_portal_enabled' => 'boolean', 'staff_portal_enabled' => 'boolean', 'admission_portal_enabled' => 'boolean', 'show_admin_link' => 'boolean', 'parent_portal_enabled' => 'boolean', 'public_result_check_enabled' => 'boolean', 'promotion_min_average' => 'decimal:2', 'promotion_min_subjects_passed' => 'integer', 'ca1_max_score' => 'integer', 'ca2_max_score' => 'integer', 'ca3_max_score' => 'integer', 'exam_max_score' => 'integer', 'pass_percentage' => 'integer'];
     }
 
     protected static function booted(): void
@@ -36,15 +36,9 @@ class SchoolSettings extends Model
             }
             if (($settings->promotion_mode ?? 'manual') === 'automatic') {
                 $errors = [];
-                if ($settings->promotion_min_average === null) {
-                    $errors['promotion_min_average'] = 'Set the minimum cumulative average before enabling automatic promotion.';
-                }
-                if ($settings->promotion_min_subjects_passed === null) {
-                    $errors['promotion_min_subjects_passed'] = 'Set the minimum passed-subject count before enabling automatic promotion.';
-                }
-                if ($errors !== []) {
-                    throw ValidationException::withMessages($errors);
-                }
+                if ($settings->promotion_min_average === null) $errors['promotion_min_average'] = 'Set the minimum cumulative average before enabling automatic promotion.';
+                if ($settings->promotion_min_subjects_passed === null) $errors['promotion_min_subjects_passed'] = 'Set the minimum passed-subject count before enabling automatic promotion.';
+                if ($errors !== []) throw ValidationException::withMessages($errors);
             }
             foreach ($settings->social_links ?? [] as $network => $url) {
                 if (! SafePublicUrl::allows((string) $url)) {

@@ -22,8 +22,21 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
+    /** The sign-in page for one portal (student, parent or staff). A switched-off portal shows a notice instead of a form. */
+    public function showPortal(Request $request): View
+    {
+        $portal = (string) $request->route('portal');
+        abort_unless(in_array($portal, ['student', 'parent', 'staff'], true), 404);
+
+        return view(PortalAccess::enabled($portal) ? 'auth.'.$portal.'-login' : 'auth.portal-off', ['portal' => $portal]);
+    }
+
     public function login(Request $request): RedirectResponse
     {
+        $portal = $request->route('portal');
+        if ($portal !== null && ! PortalAccess::enabled((string) $portal)) {
+            return redirect()->route('login.'.$portal);
+        }
         $credentials = $request->validate(['email' => ['required', 'email', 'max:190'], 'password' => ['required', 'string', 'max:255']]);
         $email = Str::lower(trim($credentials['email']));
         $key = 'login:'.hash('sha256', $email.'|'.$request->ip());
@@ -33,6 +46,20 @@ class AuthController extends Controller
         if (! Auth::attempt(['email' => $email, 'password' => $credentials['password']], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
             return back()->withErrors(['email' => 'The supplied sign-in details could not be verified.'])->onlyInput('email');
+        }
+        if ($portal !== null) {
+            $roles = $request->user()->getRoleNames();
+            $isStaff = $roles->contains(fn ($role) => ! in_array($role, ['Student', 'Parent'], true));
+            $belongs = $portal === 'parent' ? $roles->contains('Parent') : $isStaff;
+            if (! $belongs) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors(['email' => $portal === 'parent'
+                    ? 'This sign-in is for parents only. Staff should use the Staff Portal; students use the Student Portal.'
+                    : 'This sign-in is for teachers and school staff only. Parents should use the Parent Portal; students use the Student Portal.'])->onlyInput('email');
+            }
         }
         $blocked = PortalAccess::blockedMessage($request->user());
         if ($blocked !== null) {

@@ -8,12 +8,14 @@ use App\Models\StudentFeeAssignment;
 use App\Models\User;
 
 /**
- * The school decides, in the admin console, whether students and parents get portal accounts
- * and whether results can be looked up with an admission number and surname.
- * Staff accounts (teachers and administrators) are never affected by these switches.
+ * The Super Admin decides which portals exist. A portal that is switched off disappears from the public
+ * website (menus, home page, footer) and its login page shows a "switched off" notice.
+ * Administrators can always use /admin.
  */
 final class PortalAccess
 {
+    public const TITLES = ['student' => 'student', 'parent' => 'parent', 'staff' => 'staff'];
+
     public static function studentEnabled(): bool
     {
         return (bool) SchoolSettings::current()->student_portal_enabled;
@@ -24,12 +26,33 @@ final class PortalAccess
         return (bool) SchoolSettings::current()->parent_portal_enabled;
     }
 
+    public static function staffEnabled(): bool
+    {
+        return (bool) SchoolSettings::current()->staff_portal_enabled;
+    }
+
+    public static function admissionEnabled(): bool
+    {
+        return (bool) SchoolSettings::current()->admission_portal_enabled;
+    }
+
     public static function checkerEnabled(): bool
     {
         return (bool) SchoolSettings::current()->public_result_check_enabled;
     }
 
-    /** Text shown when a student or parent is turned away because their portal is switched off. */
+    /** @param  string  $portal  student, parent or staff */
+    public static function enabled(string $portal): bool
+    {
+        return match ($portal) {
+            'student' => self::studentEnabled(),
+            'parent' => self::parentEnabled(),
+            'staff' => self::staffEnabled(),
+            default => false,
+        };
+    }
+
+    /** Text shown when a person is turned away because their portal is switched off. */
     public static function suspendedMessage(string $who): string
     {
         $message = 'The '.$who.' portal is currently switched off by the school.';
@@ -43,8 +66,12 @@ final class PortalAccess
     public static function blockedMessage(User $user): ?string
     {
         $roles = $user->getRoleNames();
-        if ($roles->contains(fn ($role) => ! in_array($role, ['Student', 'Parent'], true))) {
+        // Administrators and results staff are never locked out by these switches.
+        if ($roles->contains(fn ($role) => ! in_array($role, ['Student', 'Parent', 'Teacher'], true))) {
             return null;
+        }
+        if ($roles->contains('Teacher') && ! self::staffEnabled()) {
+            return self::suspendedMessage('staff');
         }
         if ($roles->contains('Student') && ! self::studentEnabled()) {
             return self::suspendedMessage('student');

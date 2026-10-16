@@ -34,6 +34,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Result::class, ResultPolicy::class);
         // The sign-in pages and score entry extend the site layout but their controllers do not pass the
         // school settings, navigation or footer, which made /login return a server error. Supply them here.
+        // Logins and school records stay in step (see App\Domain\Identity\IdentitySync).
+        \App\Models\Student::created(fn ($student) => \App\Domain\Identity\IdentitySync::forStudent($student));
+        \App\Models\Student::updated(function ($student): void {
+            if ($student->wasChanged(['first_name', 'last_name', 'other_names']) && $student->user_id) {
+                \App\Domain\Identity\IdentitySync::forStudent($student);
+            }
+        });
+        \App\Models\Teacher::saved(fn ($teacher) => \App\Domain\Identity\IdentitySync::forTeacher($teacher));
+        \App\Models\ParentProfile::saved(fn ($parent) => \App\Domain\Identity\IdentitySync::forParent($parent));
         // Editors never type web addresses: they are made from the title. Published items get a publish date automatically.
         foreach ([\App\Models\NewsPost::class, \App\Models\SchoolEvent::class, \App\Models\AcademicProgramme::class, \App\Models\GalleryAlbum::class] as $sluggedModel) {
             $sluggedModel::saving(function ($model): void {
@@ -64,6 +73,11 @@ class AppServiceProvider extends ServiceProvider
                 'settings' => $data['settings'] ?? SchoolSettings::current(),
                 'navigation' => $data['navigation'] ?? NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get(),
                 'footerSections' => $data['footerSections'] ?? FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
+                'portalLinks' => $data['portalLinks'] ?? collect(\App\Domain\Auth\Support\PortalDirectory::enabled($data['settings'] ?? SchoolSettings::current()))->map(function (array $portal, int $index) {
+                    $link = new PortalLink();
+                    $link->forceFill($portal + ['status' => 'live', 'sort_order' => $index]);
+                    return $link;
+                }),
             ]);
         });
         View::composer('site.layout', function ($view): void {
@@ -81,18 +95,13 @@ class AppServiceProvider extends ServiceProvider
             if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
                 $digits = '234'.substr($digits, 1);
             }
-            $portalLinks = \App\Support\SiteCache::remember('portal-links', 600, fn () => PortalLink::query()->publiclyVisible()->get());
-            foreach ($portalLinks as $link) {
-                $off = ($link->key === 'students' && ! $settings->student_portal_enabled) || ($link->key === 'parents' && ! $settings->parent_portal_enabled);
-                if ($off) {
-                    $link->status = 'coming_soon'; // display only, never saved
-                }
-            }
-            if ($settings->public_result_check_enabled) {
-                $check = new PortalLink();
-                $check->forceFill(['key' => 'result-check', 'title' => 'Check Result', 'description' => 'Use your admission number and surname', 'url' => '/check-result', 'status' => 'live', 'sort_order' => 0]);
-                $portalLinks->push($check);
-            }
+            // Only portals that are switched on are listed; switched-off ones vanish from menus, home page and footer.
+            $portalLinks = collect(\App\Domain\Auth\Support\PortalDirectory::enabled($settings))->map(function (array $portal, int $index) {
+                $link = new PortalLink();
+                $link->forceFill($portal + ['status' => 'live', 'sort_order' => $index]);
+
+                return $link;
+            });
             $view->with([
                 'portalLinks' => $portalLinks,
                 'socialLinks' => $social,

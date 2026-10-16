@@ -21,7 +21,6 @@ use App\Models\NavigationItem;
 use App\Models\NewsPost;
 use App\Mail\SchoolUpdateMail;
 use App\Models\NewsletterSubscriber;
-use App\Models\PortalLink;
 use App\Models\SchoolEvent;
 use App\Models\SchoolSettings;
 use Illuminate\Http\RedirectResponse;
@@ -340,7 +339,7 @@ class SiteController extends Controller
     public function storeAdmissionApplication(Request $request): RedirectResponse
     {
         $settings = AdmissionsSettings::current();
-        abort_unless($settings->status === 'open', 404);
+        abort_unless($settings->status === 'open' && $this->settings()->admission_portal_enabled, 404);
         $data = $request->validate([
             'applicant_name' => ['required', 'string', 'max:160'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
@@ -356,6 +355,7 @@ class SiteController extends Controller
             'metadata' => [],
             'submitted_at' => now(),
         ]);
+
         $this->notifyApplication($application);
 
         return redirect()->route('admissions')->with('application_reference', $application->reference);
@@ -411,26 +411,26 @@ class SiteController extends Controller
 
     /**
      * Mission, vision, pledge and anthem written in Admin > School profile win;
-     * anything still only in the old Mission & Vision page fills the gaps.
+     * anything still only in the old "Mission & Vision" page fills the gaps.
      *
      * @param  array<string, array{paragraphs: array<int, string>, items: array<int, string>}>  $fallback
      */
     private function identityGroups(array $fallback): array
     {
-        $settings = $this->settings();
+        $s = $this->settings();
         $lines = fn (?string $text): array => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $text) ?: []), fn ($line) => $line !== ''));
         $groups = [];
-        if (filled($settings->mission)) {
-            $groups['mission'] = ['paragraphs' => [trim((string) $settings->mission)], 'items' => []];
+        if (filled($s->mission)) {
+            $groups['mission'] = ['paragraphs' => [trim((string) $s->mission)], 'items' => []];
         }
-        if (filled($settings->vision)) {
-            $groups['vision'] = ['paragraphs' => [trim((string) $settings->vision)], 'items' => []];
+        if (filled($s->vision)) {
+            $groups['vision'] = ['paragraphs' => [trim((string) $s->vision)], 'items' => []];
         }
-        if (filled($settings->pledge)) {
-            $groups['pledge'] = ['paragraphs' => [], 'items' => $lines($settings->pledge)];
+        if (filled($s->pledge)) {
+            $groups['pledge'] = ['paragraphs' => [], 'items' => $lines($s->pledge)];
         }
-        if (filled($settings->anthem)) {
-            $groups['anthem'] = ['paragraphs' => [], 'items' => $lines($settings->anthem)];
+        if (filled($s->anthem)) {
+            $groups['anthem'] = ['paragraphs' => [], 'items' => $lines($s->anthem)];
         }
 
         return $groups + $fallback;
@@ -496,7 +496,11 @@ class SiteController extends Controller
             'settings' => $this->settings(),
             'navigation' => SiteCache::remember('navigation', 600, fn () => NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get()),
             'footerSections' => SiteCache::remember('footer', 600, fn () => FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get()),
-            'portalLinks' => SiteCache::remember('portal-links', 600, fn () => PortalLink::query()->publiclyVisible()->get()),
+            'portalLinks' => collect(\App\Domain\Auth\Support\PortalDirectory::enabled($this->settings()))->map(function (array $portal, int $index) {
+                $link = new \App\Models\PortalLink();
+                $link->forceFill($portal + ['status' => 'live', 'sort_order' => $index]);
+                return $link;
+            }),
         ];
 
         return view($view, array_merge($base, $data));

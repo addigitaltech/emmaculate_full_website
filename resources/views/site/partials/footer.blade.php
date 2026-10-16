@@ -20,16 +20,25 @@
         </div>
 
         @foreach($footerSections as $section)
+            @php($isPortals = strtolower(trim((string) $section->title)) === 'portals')
+            @if(! $isPortals || count($portalLinks))
             <nav aria-label="{{ $section->title }}">
                 <h2>{{ $section->title }}</h2>
                 <ul class="footer-links">
-                    @foreach(($section->links ?? []) as $link)
-                        @if(! empty($link['url']) && \App\Domain\Website\Support\SafePublicUrl::allows($link['url']))
-                            <li><a href="{{ $link['url'] }}"@if(\App\Domain\Website\Support\ActiveLink::matches($link['url'], $currentPath)) aria-current="page"@endif>{{ $link['label'] ?? 'Link' }}</a></li>
-                        @endif
-                    @endforeach
+                    @if($isPortals)
+                        @foreach($portalLinks as $portalLink)
+                            <li><a href="{{ $portalLink->url }}"@if(\App\Domain\Website\Support\ActiveLink::matches($portalLink->url, $currentPath)) aria-current="page"@endif>{{ $portalLink->title }}</a></li>
+                        @endforeach
+                    @else
+                        @foreach(($section->links ?? []) as $link)
+                            @if(! empty($link['url']) && \App\Domain\Website\Support\SafePublicUrl::allows($link['url']))
+                                <li><a href="{{ $link['url'] }}"@if(\App\Domain\Website\Support\ActiveLink::matches($link['url'], $currentPath)) aria-current="page"@endif>{{ $link['label'] ?? 'Link' }}</a></li>
+                            @endif
+                        @endforeach
+                    @endif
                 </ul>
             </nav>
+            @endif
         @endforeach
 
         <div>

@@ -1,6 +1,6 @@
 @php
     $stepTones = ['maroon', 'navy', 'gold', 'green', 'maroon'];
-    $isOpen = $admissions->status === 'open';
+    $isOpen = $admissions->status === 'open' && $settings->admission_portal_enabled;
     $applyUrl = $isOpen ? '#apply' : route('contact');
 @endphp
 @extends('site.layout')

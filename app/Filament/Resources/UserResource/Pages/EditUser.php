@@ -16,4 +16,10 @@ class EditUser extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        // A user given the Teacher, Parent or Student role automatically gets the matching school record.
+        \App\Domain\Identity\IdentitySync::forUser($this->record->fresh());
+    }
 }

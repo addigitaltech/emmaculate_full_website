@@ -33,7 +33,7 @@ Route::post('/contact', [SiteController::class, 'storeContact'])->middleware('th
 Route::post('/newsletter', [SiteController::class, 'subscribeNewsletter'])->middleware('throttle:contact')->name('newsletter.subscribe');
 Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->name('payments.return');
 
-Route::get('/portal', [PortalController::class, 'index'])->middleware('portal.enabled')->name('portal');
+Route::get('/portal', [PortalController::class, 'index'])->name('portal');
 Route::get('/designed-by', [SiteController::class, 'credit'])->name('credit');
 Route::get('/newsletter/unsubscribe/{subscriber}', [SiteController::class, 'unsubscribe'])->whereNumber('subscriber')->middleware('signed')->name('newsletter.unsubscribe');
 Route::get('/check-result', [ResultCheckController::class, 'form'])->name('result-check');
@@ -42,7 +42,14 @@ Route::get('/check-result/{student}/{term}', [ResultCheckController::class, 'rep
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth')->name('login.submit');
-    Route::post('/student-login', [StudentAccessController::class, 'login'])->middleware('throttle:student-auth')->name('student.login');
+    // One sign-in page per portal, each only for its own people.
+    Route::get('/student/login', [AuthController::class, 'showPortal'])->defaults('portal', 'student')->name('login.student');
+    Route::get('/parent/login', [AuthController::class, 'showPortal'])->defaults('portal', 'parent')->name('login.parent');
+    Route::get('/staff/login', [AuthController::class, 'showPortal'])->defaults('portal', 'staff')->name('login.staff');
+    Route::post('/student/login', [StudentAccessController::class, 'login'])->middleware('throttle:student-auth')->name('student.login');
+    Route::post('/student-login', [StudentAccessController::class, 'login'])->middleware('throttle:student-auth');
+    Route::post('/parent/login', [AuthController::class, 'login'])->defaults('portal', 'parent')->middleware('throttle:auth')->name('login.parent.submit');
+    Route::post('/staff/login', [AuthController::class, 'login'])->defaults('portal', 'staff')->middleware('throttle:auth')->name('login.staff.submit');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:auth')->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
