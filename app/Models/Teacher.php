@@ -25,6 +25,7 @@ class Teacher extends Model
 
     public function user() { return $this->belongsTo(User::class); }
     public function assignments() { return $this->hasMany(TeacherAssignment::class); }
+    public function classTeacherships() { return $this->hasMany(ClassTeacher::class); }
     public function results() { return $this->hasMany(Result::class); }
     public function fullName(): string { return trim(implode(' ', array_filter([$this->first_name, $this->other_names, $this->last_name]))); }
 }

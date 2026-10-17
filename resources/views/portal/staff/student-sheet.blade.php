@@ -67,7 +67,7 @@
             </div>
         </div>
 
-        @if($traits->isNotEmpty())
+        @if($canRateBehaviour && $traits->isNotEmpty())
         <div class="panel">
             <div class="panel__head"><h2>Skills and behaviour</h2><span class="muted" style="font-size:.85rem">1 = Poor &middot; 2 = Fair &middot; 3 = Good &middot; 4 = Very good &middot; 5 = Excellent</span></div>
             <div class="table-wrap">
@@ -83,10 +83,14 @@
         </div>
         @endif
 
+        @if($canRateBehaviour)
         <div class="panel"><div class="panel__body form-grid form-grid--2">
             <label class="field span-2">Class teacher’s remark<textarea name="teacher_remark" rows="3" maxlength="1000">{{ old('teacher_remark', $remark?->teacher_remark) }}</textarea></label>
             @if($isAdmin)<label class="field span-2">Principal’s remark<textarea name="principal_remark" rows="3" maxlength="1000">{{ old('principal_remark', $remark?->principal_remark) }}</textarea></label>@endif
         </div></div>
+        @else
+        <p class="muted" style="font-size:.9rem">Behaviour ratings and the class teacher’s remark are entered by this class arm’s class teacher.</p>
+        @endif
 
         <div class="sticky-actions">
             <span class="muted" style="font-size:.88rem">Saved scores stay <strong>pending</strong> until a results administrator publishes them.</span>
