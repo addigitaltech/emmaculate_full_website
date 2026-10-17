@@ -5,6 +5,7 @@ namespace App\Domain\Results\Services;
 use App\Models\AcademicTerm;
 use App\Models\AssessmentConfig;
 use App\Models\AuditLog;
+use App\Models\ClassTeacher;
 use App\Models\GradeBand;
 use App\Models\Result;
 use App\Models\SchoolSettings;
@@ -59,7 +60,7 @@ final class ResultSheetService
             ->exists();
     }
 
-    /** True when the user teaches anything in this class (needed for behaviour ratings and the teacher remark). */
+    /** True when the user teaches anything in this class, or is its class teacher (needed to open a student's sheet). */
     public function teachesClass(User $user, ?int $classId, ?int $armId): bool
     {
         if ($this->isAdmin($user)) {
@@ -69,12 +70,36 @@ final class ResultSheetService
         if (! $teacherId || ! $user->hasRole('Teacher') || ! $classId) {
             return false;
         }
+        if ($this->isClassTeacher($user, $classId, $armId)) {
+            return true;
+        }
 
         return TeacherAssignment::query()
             ->where('teacher_id', $teacherId)
             ->where('school_class_id', $classId)
             ->where(fn ($query) => $query->whereNull('arm_id')->when($armId, fn ($q) => $q->orWhere('arm_id', $armId)))
             ->exists();
+    }
+
+    /** True when this user is the class teacher of the class arm (a class without arms has one class teacher). */
+    public function isClassTeacher(User $user, ?int $classId, ?int $armId): bool
+    {
+        $teacherId = $this->teacherId($user);
+        if (! $teacherId || ! $user->hasRole('Teacher') || ! $classId) {
+            return false;
+        }
+
+        return ClassTeacher::query()
+            ->where('teacher_id', $teacherId)
+            ->where('school_class_id', $classId)
+            ->where(fn ($query) => $query->whereNull('arm_id')->when($armId, fn ($q) => $q->orWhere('arm_id', $armId)))
+            ->exists();
+    }
+
+    /** Behaviour ratings and the class teacher's remark: administrators and the class teacher of that arm only. */
+    public function canRateBehaviour(User $user, ?int $classId, ?int $armId): bool
+    {
+        return $this->isAdmin($user) || $this->isClassTeacher($user, $classId, $armId);
     }
 
     /** Teachers may only work on the current term; administrators may correct any term. */

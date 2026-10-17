@@ -8,6 +8,7 @@ use App\Models\AcademicSession;
 use App\Models\AcademicTerm;
 use App\Models\AffectiveRating;
 use App\Models\AffectiveTrait;
+use App\Models\ClassTeacher;
 use App\Models\Result;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -50,7 +51,9 @@ class StaffResultsController extends Controller
         }
         $classes = SchoolClass::query()->where('is_active', true)->with('arms')->orderBy('name')->get();
         if (! $isAdmin) {
-            $allowed = $assignments->pluck('school_class_id')->unique();
+            $allowed = $assignments->pluck('school_class_id')
+                ->merge(ClassTeacher::query()->where('teacher_id', $this->sheets->teacherId($user) ?? 0)->pluck('school_class_id'))
+                ->unique();
             $classes = $classes->whereIn('id', $allowed)->values();
         }
 
@@ -352,6 +355,7 @@ class StaffResultsController extends Controller
             'ratings' => AffectiveRating::query()->where('student_id', $student->id)->where('academic_session_id', $term->academic_session_id)->where('academic_term_id', $term->id)->pluck('rating', 'trait_id'),
             'remark' => $remark,
             'isAdmin' => $isAdmin,
+            'canRateBehaviour' => $this->sheets->canRateBehaviour($user, $student->school_class_id, $student->arm_id),
             'termOpen' => $isAdmin || $term->is_current,
         ]);
     }
@@ -377,6 +381,9 @@ class StaffResultsController extends Controller
         $this->sheets->assertTermOpen($user, $term);
         $subjects = $this->sheets->subjectsFor($student)->keyBy('id');
         $isAdmin = $this->sheets->isAdmin($user);
+        // Only an administrator or this arm's class teacher may set behaviour ratings and the class teacher's remark;
+        // anything a subject teacher sends for those fields is ignored on the server.
+        $canRate = $this->sheets->canRateBehaviour($user, $student->school_class_id, $student->arm_id);
 
         $existing = Result::query()
             ->where('student_id', $student->id)
@@ -384,7 +391,7 @@ class StaffResultsController extends Controller
             ->where('academic_term_id', $term->id)
             ->get()->keyBy('subject_id');
 
-        DB::transaction(function () use ($request, $user, $student, $term, $subjects, $data, $isAdmin, $existing): void {
+        DB::transaction(function () use ($request, $user, $student, $term, $subjects, $data, $isAdmin, $canRate, $existing): void {
             foreach (($data['rows'] ?? []) as $subjectId => $row) {
                 $subject = $subjects->get((int) $subjectId);
                 abort_unless($subject, 422, 'That subject does not apply to this student.');
@@ -401,7 +408,7 @@ class StaffResultsController extends Controller
                     'ca1' => $row['ca1'] ?? null, 'ca2' => $row['ca2'] ?? null, 'ca3' => $row['ca3'] ?? null, 'exam' => $row['exam'] ?? null,
                 ], $offered);
             }
-            foreach (($data['ratings'] ?? []) as $traitId => $rating) {
+            foreach (($canRate ? ($data['ratings'] ?? []) : []) as $traitId => $rating) {
                 if ($rating === null || $rating === '') {
                     continue;
                 }
@@ -415,7 +422,7 @@ class StaffResultsController extends Controller
                 );
             }
             $values = [];
-            if ($request->has('teacher_remark')) {
+            if ($canRate && $request->has('teacher_remark')) {
                 $values['teacher_remark'] = trim((string) ($data['teacher_remark'] ?? '')) ?: null;
             }
             if ($isAdmin && $request->has('principal_remark')) {
