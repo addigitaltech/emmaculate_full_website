@@ -58,15 +58,15 @@ class PortalSettings extends Page implements HasForms
                 Forms\Components\Toggle::make('staff_portal_enabled')->label('Staff portal (teachers)')
                     ->helperText('On: teachers sign in at the Staff Portal. Off: teachers cannot sign in.'),
                 Forms\Components\Toggle::make('student_portal_enabled')->label('Student portal')
-                    ->helperText('On: students sign in with their admission number and surname. Off: students cannot sign in.'),
+                    ->helperText('On: students sign in with their Student ID and surname. Off: students cannot sign in.'),
                 Forms\Components\Toggle::make('parent_portal_enabled')->label('Parent portal')
                     ->helperText('On: parents sign in with their email and see their children. Off: parents cannot sign in.'),
                 Forms\Components\Toggle::make('public_result_check_enabled')->label('Results portal: "Check Result" (no sign-in)')
-                    ->helperText('On: a Results Portal link appears, where anyone with an admission number and surname can view published results. Off: the link and page are hidden.'),
+                    ->helperText('On: a Results Portal link appears, where anyone with a Student ID and surname can view published results. Off: the link and page are hidden.'),
                 Forms\Components\Toggle::make('require_pin_student_login')->label('Require PIN to sign in (student portal)')
-                    ->helperText('On: students must also type the 6-digit PIN from their PIN slip. Off: admission number and surname are enough. Issue PIN slips first (Students > Issue PIN slips), then switch this on.'),
+                    ->helperText('On: students must also type the 6-digit PIN from their PIN slip. Off: Student ID and surname are enough. Issue PIN slips first (Students > Issue PIN slips), then switch this on.'),
                 Forms\Components\Toggle::make('require_pin_result_check')->label('Require PIN to check results (Check Result page)')
-                    ->helperText('On: the public Check Result page also asks for the student’s 6-digit PIN. Off: admission number and surname are enough.'),
+                    ->helperText('On: the public Check Result page also asks for the student’s 6-digit PIN. Off: Student ID and surname are enough.'),
                 Forms\Components\Toggle::make('payment_gate_results')->label('Hold results until school fees are paid')
                     ->helperText('On: a student with unpaid fees cannot open results.'),
             ])->columns(2)->visible(fn (): bool => (bool) auth()->user()?->hasRole('Super Admin')),

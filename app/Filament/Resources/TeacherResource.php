@@ -20,12 +20,18 @@ class TeacherResource extends AuthorizedResource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Select::make('user_id')->relationship('user', 'email', modifyQueryUsing: fn ($query) => $query->role('Teacher'))->searchable()->preload()->placeholder('No portal account linked'),
             Forms\Components\TextInput::make('staff_number')->maxLength(80)->unique(ignoreRecord: true),
             Forms\Components\TextInput::make('first_name')->required()->maxLength(100),
             Forms\Components\TextInput::make('last_name')->required()->maxLength(100),
             Forms\Components\TextInput::make('other_names')->maxLength(150),
-            Forms\Components\TextInput::make('email')->email()->maxLength(190),
+            Forms\Components\TextInput::make('email')->label('Email (used to sign in)')->email()->maxLength(190)
+                ->required(fn (string $operation) => $operation === 'create')
+                ->unique(\App\Models\User::class, 'email', ignorable: fn (?\Illuminate\Database\Eloquent\Model $record) => $record?->user),
+            Forms\Components\TextInput::make('password')->label('Sign-in password')->password()->revealable()->autocomplete('new-password')
+                ->required(fn (string $operation) => $operation === 'create')
+                ->rule(\Illuminate\Validation\Rules\Password::min(12)->mixedCase()->numbers()->symbols())
+                ->dehydrated(fn ($state) => filled($state))
+                ->helperText('At least 12 characters with upper and lower case, a number and a symbol. When editing, leave blank to keep the current password. The teacher can also change it later with Forgot password or the Change password page.'),
             Forms\Components\TextInput::make('phone')->tel()->maxLength(50),
             Forms\Components\Select::make('gender')->options(['Female' => 'Female', 'Male' => 'Male', 'Not recorded' => 'Not recorded'])->placeholder('Not recorded'),
             Forms\Components\Select::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive'])->default('active')->required(),

@@ -65,9 +65,9 @@ class StudentAccessTest extends TestCase
     }
 
     #[Test]
-    public function a_student_can_sign_in_with_admission_number_and_surname_and_gets_an_account(): void
+    public function a_student_can_sign_in_with_student_id_and_surname_and_gets_an_account(): void
     {
-        $this->post(route('student.login'), ['admission_number' => 'adm-001', 'surname' => 'OKORO', 'pin' => $this->pin])
+        $this->post(route('student.login'), ['student_id' => 'adm-001', 'surname' => 'OKORO', 'pin' => $this->pin])
             ->assertRedirect(route('portal.dashboard'));
 
         $this->assertAuthenticated();
@@ -80,11 +80,11 @@ class StudentAccessTest extends TestCase
     #[Test]
     public function the_surname_is_not_case_sensitive_but_must_be_right(): void
     {
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'okoro', 'pin' => $this->pin])->assertRedirect(route('portal.dashboard'));
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'okoro', 'pin' => $this->pin])->assertRedirect(route('portal.dashboard'));
         $this->post(route('logout'));
         $this->flushSession();
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'ADEYEMI', 'pin' => $this->pin])->assertSessionHasErrors('admission_number');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'ADEYEMI', 'pin' => $this->pin])->assertSessionHasErrors('student_id');
         $this->assertGuest();
     }
 
@@ -92,9 +92,9 @@ class StudentAccessTest extends TestCase
     public function repeated_wrong_attempts_lock_the_sign_in_for_a_while(): void
     {
         for ($i = 0; $i < 5; $i++) {
-            $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'WRONG'.$i]);
+            $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'WRONG'.$i]);
         }
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('admission_number');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('student_id');
         $this->assertGuest();
     }
 
@@ -102,7 +102,7 @@ class StudentAccessTest extends TestCase
     public function students_cannot_sign_in_when_the_student_portal_is_switched_off(): void
     {
         $this->settings(['student_portal_enabled' => false]);
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('admission_number');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('student_id');
         $this->assertGuest();
     }
 
@@ -114,7 +114,7 @@ class StudentAccessTest extends TestCase
         $user->assignRole('Teacher');
         $this->student->forceFill(['user_id' => $user->id])->save();
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('admission_number');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('student_id');
         $this->assertGuest();
     }
 
@@ -157,7 +157,7 @@ class StudentAccessTest extends TestCase
     public function the_result_checker_is_unavailable_until_the_school_switches_it_on(): void
     {
         $this->get(route('result-check'))->assertOk()->assertSee('not available right now');
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertNotFound();
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertNotFound();
     }
 
     #[Test]
@@ -165,7 +165,7 @@ class StudentAccessTest extends TestCase
     {
         $this->settings(['public_result_check_enabled' => true]);
 
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])
             ->assertOk()->assertSee('Ada Okoro')->assertSee('First Term');
 
         // The report link only works when it carries a valid signature.
@@ -187,7 +187,7 @@ class StudentAccessTest extends TestCase
         $this->publishResultFor($historicalTerm);
         $this->settings(['public_result_check_enabled' => true]);
 
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])
             ->assertOk()
             ->assertSee('First Term')
             ->assertDontSee('Second Term');
@@ -218,9 +218,9 @@ class StudentAccessTest extends TestCase
     {
         $this->settings(['public_result_check_enabled' => true]);
 
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'WRONG', 'pin' => $this->pin])->assertSessionHasErrors('admission_number');
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'WRONG', 'pin' => $this->pin])->assertSessionHasErrors('student_id');
 
         Result::query()->update(['status' => 'pending', 'published_at' => null]);
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('admission_number');
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])->assertSessionHasErrors('student_id');
     }
 }

@@ -1,8 +1,8 @@
 @extends('site.layout')
 @section('title', 'Check Result | '.$settings->short_name)
-@section('description', 'Check a published result with an admission number and surname.')
+@section('description', 'Check a published result with a Student ID and surname.')
 @section('content')
-<x-page-hero eyebrow="Results" title="Check Result" :lead="\App\Domain\Auth\Support\PortalAccess::checkerPinRequired() ? 'Enter the admission number, the surname in CAPITAL LETTERS and your PIN to view published results.' : 'Enter the admission number and the surname in CAPITAL LETTERS to view published results.'" :image="$heroImage" :crumbs="[['Home', route('home')], ['Check Result', null]]" />
+<x-page-hero eyebrow="Results" title="Check Result" :lead="\App\Domain\Auth\Support\PortalAccess::checkerPinRequired() ? 'Enter the Student ID, the surname in CAPITAL LETTERS and your PIN to view published results.' : 'Enter the Student ID and the surname in CAPITAL LETTERS to view published results.'" :image="$heroImage" :crumbs="[['Home', route('home')], ['Check Result', null]]" />
 <section class="section">
     <div class="site-container" style="max-width:44rem">
         @if(! $enabled)
@@ -24,12 +24,12 @@
             <div class="card card--pad">
                 <form method="post" action="{{ route('result-check.lookup') }}" class="form-stack">
                     @csrf
-                    <label class="field">Admission number<input name="admission_number" value="{{ old('admission_number') }}" required maxlength="60" autocomplete="off" autocapitalize="characters" class="upper-input"></label>
+                    <label class="field">Student ID<input name="student_id" value="{{ old('student_id') }}" required maxlength="60" placeholder="{{ \App\Domain\Identity\StudentIdGenerator::prefix() }}/{{ \App\Domain\Identity\StudentIdGenerator::sessionCode() }}/0001" autocomplete="off" autocapitalize="characters" class="upper-input"></label>
                     <label class="field">Surname (CAPITAL LETTERS)<input name="surname" required maxlength="80" autocomplete="off" autocapitalize="characters" class="upper-input"></label>
                     @if(\App\Domain\Auth\Support\PortalAccess::checkerPinRequired())
                     <label class="field">PIN (6 digits from your PIN slip)<input name="pin" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off"></label>
                     @endif
-                    @error('admission_number')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
+                    @error('student_id')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     @error('surname')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     @error('pin')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     <button type="submit" class="btn btn--maroon btn--block">View result</button>

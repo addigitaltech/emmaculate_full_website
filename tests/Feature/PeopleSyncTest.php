@@ -79,7 +79,7 @@ class PeopleSyncTest extends TestCase
         $this->assertSame(1, ParentProfile::query()->where('user_id', $parent->id)->count());
         $record = Student::query()->where('user_id', $student->id)->firstOrFail();
         $this->assertSame('Nwosu', $record->last_name);
-        $this->assertStringStartsWith('STU-', $record->student_number);
+        $this->assertMatchesRegularExpression('#^[A-Z0-9]+/\d{4}/\d{4}$#', $record->student_number);
     }
 
     #[Test]

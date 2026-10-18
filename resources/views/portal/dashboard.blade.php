@@ -9,6 +9,7 @@
         </div>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap">
             @if($kind === 'admin' && ($user->can('manage website content') || $user->can('manage results') || $user->can('manage payments') || $user->can('manage students')))<a class="btn btn--ghost-light" href="{{ url('/admin') }}">Admin console</a>@endif
+            @if($kind !== 'student')<a class="btn btn--ghost-light" href="{{ route('account.password') }}">Change password</a>@endif
             <form method="post" action="{{ route('logout') }}">@csrf<button type="submit" class="btn btn--ghost-light">Sign out</button></form>
         </div>
     </div>

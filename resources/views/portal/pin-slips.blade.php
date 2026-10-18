@@ -28,9 +28,9 @@ td.slip { width: 50%; border: 1px dashed #666; padding: 8px 10px; vertical-align
                             <div class="title">Student portal PIN slip</div>
                             <div class="row"><span>Name</span><strong>{{ strtoupper($slip['student']->last_name) }}</strong> {{ trim($slip['student']->first_name.' '.$slip['student']->other_names) }}</div>
                             <div class="row"><span>Class</span>{{ $slip['student']->schoolClass?->name }}@if($slip['student']->arm) ({{ $slip['student']->arm->name }})@endif</div>
-                            <div class="row"><span>Admission no.</span><strong>{{ $slip['student']->student_number }}</strong></div>
+                            <div class="row"><span>Student ID</span><strong>{{ $slip['student']->student_number }}</strong></div>
                             <div class="pin">{{ $slip['pin'] }}</div>
-                            <div class="how">Sign in at {{ $loginUrl }} with your admission number, your surname in CAPITAL LETTERS and this PIN. Keep it private and do not share it.</div>
+                            <div class="how">Sign in at {{ $loginUrl }} with your Student ID, your surname in CAPITAL LETTERS and this PIN. Keep it private and do not share it.</div>
                         </td>
                     @endforeach
                     @if($pair->count() < 2)<td class="slip" style="border:0"></td>@endif

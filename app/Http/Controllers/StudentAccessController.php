@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /**
- * Sign-in for students who have no email address: admission number + surname, plus a 6-digit PIN from the school
+ * Sign-in for students who have no email address: Student ID + surname, plus a 6-digit PIN from the school
  * when the system setting "Require PIN to sign in" is on.
  * The first successful sign-in creates the student's account automatically.
  */
@@ -27,42 +27,42 @@ class StudentAccessController extends Controller
     {
         $pinRequired = PortalAccess::studentPinRequired();
         $data = $request->validate([
-            'admission_number' => ['required', 'string', 'max:60'],
+            'student_id' => ['required', 'string', 'max:60'],
             'surname' => ['required', 'string', 'max:80'],
         ] + ($pinRequired ? ['pin' => ['required', 'string', 'regex:/^\s*\d{6}\s*$/']] : []), ['pin.regex' => 'Enter the 6-digit PIN from your PIN slip.']);
 
-        $key = 'student-login:'.hash('sha256', StudentLookup::normaliseNumber($data['admission_number']).'|'.$request->ip());
+        $key = 'student-login:'.hash('sha256', StudentLookup::normaliseNumber($data['student_id']).'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            return back()->withErrors(['admission_number' => 'Too many attempts. Please wait 15 minutes, or ask the school office for help.'])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => 'Too many attempts. Please wait 15 minutes, or ask the school office for help.'])->onlyInput('student_id');
         }
         if (! PortalAccess::studentEnabled()) {
-            return back()->withErrors(['admission_number' => PortalAccess::suspendedMessage('student')])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => PortalAccess::suspendedMessage('student')])->onlyInput('student_id');
         }
 
-        $student = $lookup->find($data['admission_number'], $data['surname']);
+        $student = $lookup->find($data['student_id'], $data['surname']);
         if (! $student) {
             RateLimiter::hit($key, 900);
 
-            return back()->withErrors(['admission_number' => 'We could not verify those details. Check the admission number, the surname in CAPITAL LETTERS and the PIN.'])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => 'We could not verify those details. Check the Student ID, the surname in CAPITAL LETTERS and the PIN.'])->onlyInput('student_id');
         }
 
         // The PIN is checked only while the school has "Require PIN to sign in" switched on in the system settings.
         $outcome = $pinRequired ? $pins->attempt($student, (string) ($data['pin'] ?? '')) : 'ok';
         if ($outcome === 'no_pin') {
-            return back()->withErrors(['admission_number' => 'No PIN has been issued for this student yet. Please ask the school office for your PIN slip.'])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => 'No PIN has been issued for this student yet. Please ask the school office for your PIN slip.'])->onlyInput('student_id');
         }
         if ($outcome === 'locked') {
-            return back()->withErrors(['admission_number' => 'Sign-in is locked for a while after too many wrong PINs. Try again later, or ask the school office to reset your PIN.'])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => 'Sign-in is locked for a while after too many wrong PINs. Try again later, or ask the school office to reset your PIN.'])->onlyInput('student_id');
         }
         if ($outcome !== 'ok') {
             RateLimiter::hit($key, 900);
 
-            return back()->withErrors(['admission_number' => 'We could not verify those details. Check the admission number, the surname in CAPITAL LETTERS and the PIN.'])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => 'We could not verify those details. Check the Student ID, the surname in CAPITAL LETTERS and the PIN.'])->onlyInput('student_id');
         }
 
         $user = $this->accountFor($student);
         if (! $user) {
-            return back()->withErrors(['admission_number' => 'This student record cannot sign in here. Please contact the school office.'])->onlyInput('admission_number');
+            return back()->withErrors(['student_id' => 'This student record cannot sign in here. Please contact the school office.'])->onlyInput('student_id');
         }
 
         RateLimiter::clear($key);

@@ -58,6 +58,8 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware(['auth', 'portal.enabled'])->group(function (): void {
     Route::get('/portal/dashboard', [PortalController::class, 'dashboard'])->name('portal.dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/portal/account/password', [\App\Http\Controllers\AccountPasswordController::class, 'edit'])->name('account.password');
+    Route::post('/portal/account/password', [\App\Http\Controllers\AccountPasswordController::class, 'update'])->middleware('throttle:auth')->name('account.password.update');
     Route::get('/portal/results/entry', fn () => redirect()->route('staff.results'))->middleware('role:Teacher,Results Admin,Super Admin')->name('results.entry');
     Route::post('/portal/results/entry', [ResultsController::class, 'store'])->middleware('role:Teacher,Results Admin,Super Admin')->name('results.store');
     Route::post('/portal/results/{result}/publish', [ResultsController::class, 'publish'])->middleware('permission:publish results')->name('results.publish');

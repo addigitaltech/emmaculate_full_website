@@ -16,6 +16,12 @@ class Student extends Model
 
     protected static function booted(): void
     {
+        // Every student gets a Student ID (EAC/2627/0001) automatically the moment the record is created.
+        static::creating(function (self $student): void {
+            if (blank($student->student_number)) {
+                $student->student_number = \App\Domain\Identity\StudentIdGenerator::next();
+            }
+        });
         static::saving(function (self $student): void {
             if (! in_array($student->status, ['active', 'inactive', 'graduated', 'transferred'], true)) {
                 throw ValidationException::withMessages(['status' => 'Choose a valid student status.']);

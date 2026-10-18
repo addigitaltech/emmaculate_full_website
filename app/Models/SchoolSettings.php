@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class SchoolSettings extends Model
 {
-    protected $fillable = ['school_name', 'short_name', 'motto', 'description', 'logo_path', 'favicon_path', 'address', 'phone_primary', 'phone_secondary', 'email', 'whatsapp', 'office_hours', 'social_links', 'theme_tokens', 'verified_stats', 'ca1_max_score', 'ca2_max_score', 'ca3_max_score', 'exam_max_score', 'pass_percentage', 'highlight_fail_grade', 'payment_gate_results', 'result_access_mode', 'student_portal_enabled', 'parent_portal_enabled', 'staff_portal_enabled', 'admission_portal_enabled', 'public_result_check_enabled', 'require_pin_student_login', 'require_pin_result_check', 'promotion_mode', 'promotion_min_average', 'promotion_min_subjects_passed', 'gps_location', 'show_admin_link', 'mission', 'vision', 'pledge', 'anthem', 'identity_closing', 'canonical_base_url', 'global_settings'];
+    protected $fillable = ['school_name', 'short_name', 'motto', 'description', 'logo_path', 'favicon_path', 'address', 'phone_primary', 'phone_secondary', 'email', 'whatsapp', 'office_hours', 'social_links', 'theme_tokens', 'verified_stats', 'ca1_max_score', 'ca2_max_score', 'ca3_max_score', 'exam_max_score', 'pass_percentage', 'highlight_fail_grade', 'payment_gate_results', 'result_access_mode', 'student_portal_enabled', 'parent_portal_enabled', 'staff_portal_enabled', 'admission_portal_enabled', 'student_id_prefix', 'public_result_check_enabled', 'require_pin_student_login', 'require_pin_result_check', 'promotion_mode', 'promotion_min_average', 'promotion_min_subjects_passed', 'gps_location', 'show_admin_link', 'mission', 'vision', 'pledge', 'anthem', 'identity_closing', 'canonical_base_url', 'global_settings'];
 
     protected function casts(): array
     {

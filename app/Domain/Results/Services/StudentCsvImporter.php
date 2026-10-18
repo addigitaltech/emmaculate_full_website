@@ -12,9 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Imports students from a CSV file so a school can move an existing register in one go.
- * Required columns: student_number, first_name, last_name. Optional: other_names, gender,
- * date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status.
- * Existing students are matched on student_number and updated; nothing is ever deleted.
+ * Required columns: first_name, last_name. Optional: other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY),
+ * class, arm, status, student_id.
+ * New students get their Student ID (e.g. EAC/2627/0001) automatically, so leave student_id blank for them.
+ * To update an existing student, put that student's existing Student ID in student_id. Nothing is ever deleted.
  */
 final class StudentCsvImporter
 {
@@ -34,10 +35,10 @@ final class StudentCsvImporter
             throw ValidationException::withMessages(['file' => 'The file is empty.']);
         }
         $header = array_map(fn ($name) => Str::snake(trim((string) preg_replace('/^\xEF\xBB\xBF/', '', (string) $name))), $header);
-        foreach (['student_number', 'first_name', 'last_name'] as $required) {
+        foreach (['first_name', 'last_name'] as $required) {
             if (! in_array($required, $header, true)) {
                 fclose($handle);
-                throw ValidationException::withMessages(['file' => 'Missing required column: '.$required.'. Expected columns: student_number, first_name, last_name, other_names, gender, date_of_birth, class, arm, status.']);
+                throw ValidationException::withMessages(['file' => 'Missing required column: '.$required.'. Expected columns: first_name, last_name, other_names, gender, date_of_birth, class, arm, status.']);
             }
         }
 
@@ -62,9 +63,9 @@ final class StudentCsvImporter
                 foreach ($header as $index => $name) {
                     $data[$name] = isset($row[$index]) ? trim((string) $row[$index]) : '';
                 }
-                $number = $data['student_number'] ?? '';
-                if ($number === '' || ($data['first_name'] ?? '') === '' || ($data['last_name'] ?? '') === '') {
-                    $errors[] = 'Row '.$line.': student_number, first_name and last_name are required.';
+                $number = $data['student_id'] ?? ($data['student_number'] ?? '');
+                if (($data['first_name'] ?? '') === '' || ($data['last_name'] ?? '') === '') {
+                    $errors[] = 'Row '.$line.': first_name and last_name are required.';
                     continue;
                 }
 
@@ -103,7 +104,12 @@ final class StudentCsvImporter
                 $gender = in_array($gender, ['Female', 'Male'], true) ? $gender : null;
                 $status = Str::lower($data['status'] ?? '') ?: 'active';
 
-                $student = Student::query()->firstOrNew(['student_number' => $number]);
+                $student = $number !== '' ? Student::query()->where('student_number', $number)->first() : null;
+                if ($number !== '' && ! $student) {
+                    $errors[] = 'Row '.$line.': Student ID "'.$number.'" does not exist. Leave student_id blank to add a new student; the ID is assigned automatically.';
+                    continue;
+                }
+                $student ??= new Student();
                 $isNew = ! $student->exists;
                 $student->fill([
                     'first_name' => $data['first_name'],

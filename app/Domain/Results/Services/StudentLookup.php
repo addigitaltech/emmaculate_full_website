@@ -5,7 +5,7 @@ namespace App\Domain\Results\Services;
 use App\Models\Student;
 use Illuminate\Support\Str;
 
-/** Finds an active student from an admission number and surname (case and spacing do not matter). */
+/** Finds an active student from a Student ID and surname (case and spacing do not matter). */
 final class StudentLookup
 {
     public static function normaliseNumber(string $value): string

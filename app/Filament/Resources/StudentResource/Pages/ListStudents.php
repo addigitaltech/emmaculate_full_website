@@ -24,7 +24,7 @@ class ListStudents extends ListRecords
                 ->color('gray')
                 ->visible(fn () => StudentResource::canCreate())
                 ->modalHeading('Import students from a CSV file')
-                ->modalDescription('Columns: student_number, first_name, last_name, other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status. Classes and arms must already exist. Existing students are matched on student_number and updated.')
+                ->modalDescription('Columns: first_name, last_name, other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status, and optionally student_id. New students get their Student ID automatically, so leave student_id blank; put an existing Student ID there only to update that student. Classes and arms must already exist. Existing students are matched on student_number and updated.')
                 ->modalSubmitActionLabel('Import')
                 ->form([
                     FileUpload::make('file')
@@ -54,6 +54,18 @@ class ListStudents extends ListRecords
                     }
                     $notice = Notification::make()->title('Student import finished')->body($body);
                     ($result['errors'] === [] ? $notice->success() : $notice->warning())->persistent()->send();
+                }),
+            Actions\Action::make('printPinSlips')->label('Print PIN slips')->icon('heroicon-o-printer')->color('gray')
+                ->url(fn () => \App\Filament\Pages\StudentPinSlips::getUrl())
+                ->visible(fn () => \App\Filament\Pages\StudentPinSlips::canAccess()),
+            Actions\Action::make('assignStudentIds')->label('Assign Student IDs to older records')->icon('heroicon-o-identification')->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Give older students a Student ID')
+                ->modalDescription(fn () => \App\Domain\Identity\StudentIdGenerator::legacyCount().' student(s) still have an older number. They will each get a new Student ID in the school format (for example EAC/2627/0001), oldest records first. Anything printed with the old number, such as earlier PIN slips, must be reprinted.')
+                ->visible(fn () => StudentResource::canCreate() && \App\Domain\Identity\StudentIdGenerator::legacyCount() > 0)
+                ->action(function (): void {
+                    $count = \App\Domain\Identity\StudentIdGenerator::convertLegacy();
+                    Notification::make()->success()->title($count.' student(s) now have a Student ID')->send();
                 }),
             Actions\CreateAction::make(),
         ];

@@ -112,7 +112,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('contact', fn (Request $request) => Limit::perMinute(5)->by((string) $request->ip()));
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
         // Many students may sign in or look up results from one school network, so these allow more per IP.
-        // Brute-force protection for them is the per-admission-number lockout in the controllers.
+        // Brute-force protection for them is the per-student lockout in the controllers.
         RateLimiter::for('student-auth', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
         RateLimiter::for('results', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
         RateLimiter::for('payment-initiation', fn (Request $request) => Limit::perMinute(8)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));

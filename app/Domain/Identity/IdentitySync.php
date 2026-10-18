@@ -67,9 +67,9 @@ final class IdentitySync
             ParentProfile::query()->create(['user_id' => $user->id, 'full_name' => $user->name, 'email' => $user->email]);
         }
         if ($user->hasRole('Student') && ! Student::query()->where('user_id', $user->id)->exists()) {
-            // The admission number and class are completed later under People > Students.
+            // The Student ID is generated automatically; the class and other details are completed later under People > Students.
             Student::query()->create([
-                'user_id' => $user->id, 'student_number' => 'STU-'.str_pad((string) $user->id, 5, '0', STR_PAD_LEFT),
+                'user_id' => $user->id,
                 'first_name' => $first, 'last_name' => $last, 'status' => 'active',
             ]);
         }
@@ -121,7 +121,7 @@ final class IdentitySync
         $record->forceFill(['user_id' => $user->id])->saveQuietly();
     }
 
-    /** A login account nobody can sign in to by password until it is reset or, for students, used with the admission number. */
+    /** A login account nobody can sign in to by password until it is reset or, for students, used with the Student ID. */
     private static function makeUser(string $name, string $email, string $role): User
     {
         $user = new User();

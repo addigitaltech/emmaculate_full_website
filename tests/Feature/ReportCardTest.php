@@ -65,6 +65,8 @@ class ReportCardTest extends TestCase
             ->assertSee('size: A4 portrait', false)
             ->assertSee('Passport photograph')
             ->assertSee('Result analysis')
+            ->assertSee('Student ID')
+            ->assertSee('S1')
             ->assertDontSee('Cumulative total');
     }
 

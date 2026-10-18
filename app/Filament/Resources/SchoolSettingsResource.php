@@ -24,6 +24,9 @@ class SchoolSettingsResource extends AuthorizedResource
         return $form->schema([
             Forms\Components\TextInput::make('school_name')->required()->maxLength(180),
             Forms\Components\TextInput::make('short_name')->required()->maxLength(80),
+            Forms\Components\TextInput::make('student_id_prefix')->label('Student ID prefix')->required()->maxLength(12)->alphaNum()
+                ->dehydrateStateUsing(fn ($state) => strtoupper((string) $state))
+                ->helperText('Starts every new Student ID, e.g. EAC gives EAC/2627/0001 (2627 is the session 2026/2027, 0001 the student\'s running number). Changing it only affects students added afterwards.'),
             Forms\Components\TextInput::make('motto')->maxLength(180),
             Forms\Components\Textarea::make('description')->rows(4)->maxLength(1200)->columnSpanFull(),
             Forms\Components\FileUpload::make('logo_path')->disk('public')->directory('branding')->visibility('public')->image()->maxSize(2048),
@@ -51,10 +54,10 @@ class SchoolSettingsResource extends AuthorizedResource
                 ->description('Choose who gets a portal. Staff accounts are never affected by these switches.')
                 ->schema([
                     Forms\Components\Toggle::make('student_portal_enabled')->label('Student portal')->default(true)
-                        ->helperText('On: students sign in with their admission number and surname (or email). Off: students cannot sign in.'),
+                        ->helperText('On: students sign in with their Student ID and surname (or email). Off: students cannot sign in.'),
                     Forms\Components\Toggle::make('parent_portal_enabled')->label('Parent portal')->default(true)
                         ->helperText('On: parents sign in with their email and see linked children. Off: parents cannot sign in.'),
-                    Forms\Components\Toggle::make('public_result_check_enabled')->label('Check result with admission number and surname')->default(false)
+                    Forms\Components\Toggle::make('public_result_check_enabled')->label('Check result with Student ID and surname')->default(false)
                         ->helperText('On: a public "Check Result" page lets students and parents view published results without signing in. Use it when the portals are switched off.'),
                     Forms\Components\Toggle::make('require_pin_student_login')->label('Require PIN to sign in (student portal)')->default(false)
                         ->helperText('On: students must also type their 6-digit PIN. Issue PIN slips first.'),

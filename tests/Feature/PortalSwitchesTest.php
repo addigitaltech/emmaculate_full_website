@@ -55,10 +55,10 @@ class PortalSwitchesTest extends TestCase
     #[Test]
     public function every_portal_has_its_own_sign_in_page(): void
     {
-        $this->get('/student/login')->assertOk()->assertSee('Admission number')->assertDontSee('Forgot your password');
-        $this->get('/parent/login')->assertOk()->assertSee('Forgot your password')->assertDontSee('Admission number');
-        $this->get('/staff/login')->assertOk()->assertSee('Forgot your password')->assertDontSee('Admission number');
-        $this->get('/login')->assertOk()->assertSee('Which portal do you need?')->assertDontSee('Admission number');
+        $this->get('/student/login')->assertOk()->assertSee('Student ID')->assertDontSee('Forgot your password');
+        $this->get('/parent/login')->assertOk()->assertSee('Forgot your password')->assertDontSee('Student ID');
+        $this->get('/staff/login')->assertOk()->assertSee('Forgot your password')->assertDontSee('Student ID');
+        $this->get('/login')->assertOk()->assertSee('Which portal do you need?')->assertDontSee('Student ID');
     }
 
     #[Test]

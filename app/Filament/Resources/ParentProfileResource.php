@@ -22,8 +22,14 @@ class ParentProfileResource extends AuthorizedResource
     {
         return $form->schema([
             Forms\Components\TextInput::make('full_name')->required()->maxLength(180),
-            Forms\Components\Select::make('user_id')->relationship('user', 'email', modifyQueryUsing: fn ($query) => $query->role('Parent'))->searchable()->preload()->placeholder('No portal account linked'),
-            Forms\Components\TextInput::make('email')->email()->maxLength(190),
+            Forms\Components\TextInput::make('email')->label('Email (used to sign in)')->email()->maxLength(190)
+                ->required(fn (string $operation) => $operation === 'create')
+                ->unique(\App\Models\User::class, 'email', ignorable: fn (?\Illuminate\Database\Eloquent\Model $record) => $record?->user),
+            Forms\Components\TextInput::make('password')->label('Sign-in password')->password()->revealable()->autocomplete('new-password')
+                ->required(fn (string $operation) => $operation === 'create')
+                ->rule(\Illuminate\Validation\Rules\Password::min(12)->mixedCase()->numbers()->symbols())
+                ->dehydrated(fn ($state) => filled($state))
+                ->helperText('At least 12 characters with upper and lower case, a number and a symbol. When editing, leave blank to keep the current password. The parent can also change it later with Forgot password or the Change password page.'),
             Forms\Components\TextInput::make('phone')->tel()->maxLength(50),
             Forms\Components\Select::make('students')->label('Linked children')->relationship('students', 'student_number')->multiple()->searchable()->preload()->getOptionLabelFromRecordUsing(fn (Student $record) => $record->fullName().' · '.$record->student_number)->columnSpanFull(),
         ])->columns(2);

@@ -90,6 +90,7 @@ table { border-collapse: collapse; width: 100%; }
         <td style="width:80%;padding:0">
             <table class="bio">
                 <tr><td class="k">Full Name (Gender):</td><td class="v"><strong>{{ strtoupper($student->last_name) }}</strong> {{ trim($student->first_name.' '.$student->other_names) }}@if($student->gender) ({{ $student->gender }})@endif</td></tr>
+                <tr><td class="k">Student ID:</td><td class="v"><strong>{{ $student->student_number }}</strong></td></tr>
                 <tr><td class="k">Date of Birth (Age):</td><td class="v">{{ $student->date_of_birth ? $student->date_of_birth->format('Y-m-d').' ('.$student->date_of_birth->age.' years of age)' : '—' }}</td></tr>
                 <tr><td class="k">Student Class:</td><td class="v">{{ $reportClass?->name ?: '—' }}@if($reportArm) ({{ $reportArm->name }})@endif</td></tr>
                 <tr><td class="k">Report Sheet For:</td><td class="v">{{ $term->name }}, {{ $term->session?->name }} Academic Session</td></tr>
@@ -122,7 +123,7 @@ table { border-collapse: collapse; width: 100%; }
     @endif
 
     <p class="key" style="padding:0">Grading: @foreach($bands as $band){{ $band['grade'] }} = {{ $band['min_score'] }}–{{ $band['max_score'] }}@if(! $loop->last) &middot; @endif @endforeach</p>
-    <table class="sign"><tr><td><span>Class teacher{{ ($classTeacherName ?? null) ? ': '.$classTeacherName : '' }}</span></td><td><span>Principal</span></td><td><span>Parent / Guardian</span></td></tr></table>
+    <table class="sign"><tr><td><span>Class teacher@if($classTeacherName ?? null): {{ $classTeacherName }}@endif</span></td><td><span>Principal</span></td><td><span>Parent / Guardian</span></td></tr></table>
     <p class="foot">Generated {{ now()->format('Y-m-d H:i') }} for {{ $student->fullName() }}</p>
 </div>
 @if(! $isPdf)@vite(['resources/js/app.js'])@endif

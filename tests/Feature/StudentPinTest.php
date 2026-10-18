@@ -69,10 +69,10 @@ class StudentPinTest extends TestCase
         $pin = $this->pins->issue($this->student);
         $wrong = $pin === '000000' ? '111111' : '000000';
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $wrong])->assertSessionHasErrors('admission_number');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $wrong])->assertSessionHasErrors('student_id');
         $this->assertGuest();
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])->assertRedirect(route('portal.dashboard'));
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])->assertRedirect(route('portal.dashboard'));
         $this->assertAuthenticated();
     }
 
@@ -81,14 +81,14 @@ class StudentPinTest extends TestCase
     {
         $this->pins->issue($this->student);
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO'])->assertSessionHasErrors('pin');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO'])->assertSessionHasErrors('pin');
         $this->assertGuest();
     }
 
     #[Test]
     public function a_student_with_no_pin_cannot_sign_in_and_is_told_to_ask_the_office(): void
     {
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => '123456'])->assertSessionHasErrors('admission_number');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => '123456'])->assertSessionHasErrors('student_id');
         $this->assertGuest();
     }
 
@@ -100,18 +100,18 @@ class StudentPinTest extends TestCase
 
         foreach (['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5'] as $address) {
             $this->withServerVariables(['REMOTE_ADDR' => $address])
-                ->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $wrong]);
+                ->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $wrong]);
         }
 
         // Even the correct PIN from a brand-new address is refused while the student is locked.
         $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
-            ->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])
-            ->assertSessionHasErrors('admission_number');
+            ->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])
+            ->assertSessionHasErrors('student_id');
         $this->assertGuest();
 
         // The lock ends after 15 minutes.
         $this->travel(16)->minutes();
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])->assertRedirect(route('portal.dashboard'));
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])->assertRedirect(route('portal.dashboard'));
     }
 
     #[Test]
@@ -159,8 +159,8 @@ class StudentPinTest extends TestCase
         $pin = $this->pins->issue($this->student);
         $wrong = $pin === '000000' ? '111111' : '000000';
 
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $wrong])->assertSessionHasErrors('admission_number');
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])->assertOk();
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $wrong])->assertSessionHasErrors('student_id');
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $pin])->assertOk();
     }
 
     #[Test]
@@ -202,11 +202,11 @@ class StudentPinTest extends TestCase
     }
 
     #[Test]
-    public function with_the_student_pin_switch_off_the_admission_number_and_surname_are_enough(): void
+    public function with_the_student_pin_switch_off_the_student_id_and_surname_are_enough(): void
     {
         SchoolSettings::current()->forceFill(['require_pin_student_login' => false])->save();
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO'])->assertRedirect(route('portal.dashboard'));
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO'])->assertRedirect(route('portal.dashboard'));
         $this->assertAuthenticated();
     }
 
@@ -216,7 +216,7 @@ class StudentPinTest extends TestCase
         SchoolSettings::current()->forceFill(['public_result_check_enabled' => true, 'require_pin_result_check' => false])->save();
 
         $this->get(route('result-check'))->assertOk()->assertDontSee('PIN (6 digits');
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO'])->assertOk()->assertSee('Ada Okoro');
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO'])->assertOk()->assertSee('Ada Okoro');
     }
 
     #[Test]
@@ -225,8 +225,8 @@ class StudentPinTest extends TestCase
         // Result checker needs a PIN, student sign-in does not.
         SchoolSettings::current()->forceFill(['public_result_check_enabled' => true, 'require_pin_result_check' => true, 'require_pin_student_login' => false])->save();
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO'])->assertRedirect(route('portal.dashboard'));
-        $this->post(route('result-check.lookup'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO'])->assertSessionHasErrors('pin');
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO'])->assertRedirect(route('portal.dashboard'));
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO'])->assertSessionHasErrors('pin');
     }
 
     #[Test]
@@ -235,7 +235,7 @@ class StudentPinTest extends TestCase
         $this->pins->issue($this->student);
         SchoolSettings::current()->forceFill(['require_pin_student_login' => false])->save();
 
-        $this->post(route('student.login'), ['admission_number' => 'ADM-001', 'surname' => 'OKORO', 'pin' => '999999'])->assertRedirect(route('portal.dashboard'));
+        $this->post(route('student.login'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => '999999'])->assertRedirect(route('portal.dashboard'));
         $this->assertSame(0, (int) Student::query()->find($this->student->id)->pin_failed_attempts);
     }
 }

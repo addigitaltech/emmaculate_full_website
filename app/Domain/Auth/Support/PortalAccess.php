@@ -70,7 +70,7 @@ final class PortalAccess
         $message = 'The '.$who.' portal is currently switched off by the school.';
 
         return self::checkerEnabled()
-            ? $message.' You can still check results with your admission number and surname.'
+            ? $message.' You can still check results with your Student ID and surname.'
             : $message.' Please contact the school office.';
     }
 
