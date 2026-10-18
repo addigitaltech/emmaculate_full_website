@@ -56,6 +56,10 @@ class SchoolSettingsResource extends AuthorizedResource
                         ->helperText('On: parents sign in with their email and see linked children. Off: parents cannot sign in.'),
                     Forms\Components\Toggle::make('public_result_check_enabled')->label('Check result with admission number and surname')->default(false)
                         ->helperText('On: a public "Check Result" page lets students and parents view published results without signing in. Use it when the portals are switched off.'),
+                    Forms\Components\Toggle::make('require_pin_student_login')->label('Require PIN to sign in (student portal)')->default(false)
+                        ->helperText('On: students must also type their 6-digit PIN. Issue PIN slips first.'),
+                    Forms\Components\Toggle::make('require_pin_result_check')->label('Require PIN to check results')->default(false)
+                        ->helperText('On: the public Check Result page also asks for the 6-digit PIN.'),
                 ])->columns(3)->columnSpanFull(),
             Forms\Components\TextInput::make('canonical_base_url')->url()->maxLength(2048),
             Forms\Components\KeyValue::make('global_settings')->keyLabel('Setting')->valueLabel('Value')->columnSpanFull(),

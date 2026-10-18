@@ -11,7 +11,9 @@ use App\Models\AffectiveTrait;
 use App\Models\ClassTeacher;
 use App\Models\Result;
 use App\Models\SchoolClass;
+use App\Models\SchoolSettings;
 use App\Models\Student;
+use App\Models\StudentFeeAssignment;
 use App\Models\Subject;
 use App\Models\TeacherAssignment;
 use App\Models\TermRemark;
@@ -57,6 +59,30 @@ class StaffResultsController extends Controller
             $classes = $classes->whereIn('id', $allowed)->values();
         }
 
+        // Administrators see whose published report is currently held back because of unpaid fees. Calculation,
+        // grading and positions are unaffected: the fee gate only hides the report from the student and parent.
+        $feeGateOn = false;
+        $withheld = collect();
+        if ($isAdmin && $term) {
+            $feeGateOn = (bool) SchoolSettings::current()->payment_gate_results;
+            if ($feeGateOn) {
+                $owing = StudentFeeAssignment::query()->whereIn('status', ['unpaid', 'overdue'])->get(['student_id', 'amount_due', 'currency'])->groupBy('student_id');
+                $withheld = Student::query()
+                    ->with(['schoolClass', 'arm'])
+                    ->whereIn('id', $owing->keys())
+                    ->whereIn('id', Result::published()->where('academic_term_id', $term->id)->select('student_id'))
+                    ->orderBy('last_name')
+                    ->orderBy('first_name')
+                    ->get()
+                    ->map(fn (Student $student): array => [
+                        'student' => $student,
+                        'items' => $owing[$student->id]->count(),
+                        'amount' => $owing[$student->id]->sum('amount_due'),
+                        'currency' => $owing[$student->id]->first()->currency ?: 'NGN',
+                    ]);
+            }
+        }
+
         return view('portal.staff.results-home', [
             'isAdmin' => $isAdmin,
             'term' => $term,
@@ -64,6 +90,8 @@ class StaffResultsController extends Controller
             'classes' => $classes,
             'assignments' => $assignments,
             'canPublish' => $user->can('publish results'),
+            'feeGateOn' => $feeGateOn,
+            'withheld' => $withheld,
         ]);
     }
 
@@ -609,6 +637,7 @@ class StaffResultsController extends Controller
     private function rosterFor(TeacherAssignment $assignment)
     {
         return Student::query()
+            ->with('photo')
             ->where('status', 'active')
             ->where('school_class_id', $assignment->school_class_id)
             ->when($assignment->arm_id, fn ($query) => $query->where('arm_id', $assignment->arm_id))

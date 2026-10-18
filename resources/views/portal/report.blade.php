@@ -2,66 +2,76 @@
     $showCa2 = collect($rows)->contains(fn ($row) => ($row['maxima']['ca2'] ?? 0) > 0);
     $showCa3 = collect($rows)->contains(fn ($row) => ($row['maxima']['ca3'] ?? 0) > 0);
     $showCumulative = (int) $term->sequence > 1;
-    $columnCount = 10 + (int) $showCa2 + (int) $showCa3 + ($showCumulative ? 2 : 0);
+    $termSequences = collect($cumulativeTerms ?? [])->pluck('sequence')->map(fn ($sequence) => (int) $sequence)->values();
     $logoSrc = $logoPath ? ($isPdf ? 'file://'.$logoPath : asset('storage/'.$settings->logo_path)) : null;
     $photoSrc = $photoPath ? ($isPdf ? 'file://'.$photoPath : $student->photo?->url()) : null;
     $failGrade = collect($bands)->sortBy('min_score')->first()['grade'] ?? 'F';
-    $labels = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
+    $labels = [1 => 'Fair', 2 => 'Pass', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
     $hasPending = collect($rows)->contains(fn ($row) => $row['status'] !== 'published');
     $fmt = fn ($value) => rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.');
+    $ord = function ($number): string {
+        $number = (int) $number;
+        if ($number <= 0) {
+            return '—';
+        }
+        $suffix = in_array($number % 100, [11, 12, 13], true) ? 'th' : ([1 => 'st', 2 => 'nd', 3 => 'rd'][$number % 10] ?? 'th');
+
+        return $number.$suffix;
+    };
+    $termLabel = fn ($sequence) => [1 => '1st term', 2 => '2nd term', 3 => '3rd term'][(int) $sequence] ?? ((int) $sequence.'th term');
 @endphp
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Report · {{ $student->fullName() }} · {{ $term->name }}</title>
 <style>
-@page { size: A4 landscape; margin: 10mm; }
+@page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 10px; color: #1b1f2a; background: #fff; }
-.toolbar { max-width: 1080px; margin: 12px auto; text-align: right; }
+body { margin: 0; font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 9px; color: #1b1f2a; background: #fff; }
+.toolbar { max-width: 794px; margin: 12px auto; text-align: right; }
 .toolbar a, .toolbar button { display: inline-block; padding: 8px 14px; border: 0; border-radius: 4px; background: #7a141a; color: #fff; text-decoration: none; font-size: 12px; cursor: pointer; font-family: inherit; }
-.banner { max-width: 1080px; margin: 0 auto 8px; padding: 8px 12px; background: #fdf0d2; color: #7a4d00; border: 1px solid #f4d894; font-size: 11px; }
-.sheet { max-width: 1080px; margin: 0 auto; padding: 14px 18px; border: 1px solid #cfc8bf; }
+.banner { max-width: 794px; margin: 0 auto 8px; padding: 8px 12px; background: #fdf0d2; color: #7a4d00; border: 1px solid #f4d894; font-size: 11px; }
+.sheet { width: 100%; max-width: 794px; margin: 0 auto; padding: 10px 12px; }
 table { border-collapse: collapse; width: 100%; }
 .head td { vertical-align: middle; }
-.school { text-align: center; }
-.school h1 { margin: 0; font-size: 20px; color: #041433; text-transform: uppercase; letter-spacing: .5px; }
-.school .motto { margin: 2px 0; font-style: italic; color: #7a141a; }
-.school .meta { margin: 2px 0; color: #566070; font-size: 9px; }
-.rule { border-top: 2px solid #041433; margin: 8px 0; }
-.title { text-align: center; font-weight: bold; font-size: 12px; text-transform: uppercase; margin: 6px 0 8px; color: #7a141a; letter-spacing: .5px; }
-.info td { padding: 2px 6px; font-size: 10px; }
-.info td.k { color: #566070; width: 17%; }
-.info td.v { font-weight: bold; width: 33%; }
-.grid th { background: #041433; color: #fff; padding: 5px 4px; border: 1px solid #041433; font-size: 9px; text-align: center; }
+.school h1 { margin: 0; font-size: 19px; color: #041433; text-transform: uppercase; letter-spacing: .4px; }
+.school .motto { margin: 1px 0 3px; font-style: italic; font-size: 8px; color: #566070; }
+.school .meta { margin: 1px 0; color: #1b1f2a; font-size: 9px; }
+.rule { border-top: 1px solid #cfc8bf; margin: 7px 0; }
+.bio td { padding: 2px 6px; font-size: 10px; vertical-align: top; }
+.bio td.k { width: 27%; text-align: right; font-weight: bold; color: #1b1f2a; }
+.bio td.v { width: 53%; }
+.photo { text-align: right; }
+.photo img { height: 84px; width: 70px; border: 1px solid #cfc8bf; }
+.photo .ph { display: inline-block; height: 84px; width: 70px; border: 1px dashed #cfc8bf; text-align: center; font-size: 7px; color: #8a8580; padding-top: 34px; }
+.panel { border: 1px solid #cfc8bf; margin-bottom: 8px; page-break-inside: avoid; }
+.panel > .cap { background: #f1f1f1; border-bottom: 1px solid #cfc8bf; padding: 3px 5px; text-align: center; font-size: 7px; font-weight: bold; text-transform: uppercase; letter-spacing: .3px; }
+.grid th { background: #f1f1f1; padding: 3px 2px; border: 1px solid #cfc8bf; font-size: 7px; text-align: center; }
 .grid th.l, .grid td.l { text-align: left; }
-.grid td { padding: 4px; border: 1px solid #cfc8bf; text-align: center; }
-.grid tr.alt td { background: #f7f2ee; }
-.grid td.sub { font-weight: bold; text-align: left; }
-.grid--cumulative { font-size: 8px; }
-.grid--cumulative th, .grid--cumulative td { padding: 3px 2px; }
-.grade { font-weight: bold; color: #041433; }
+.grid td { padding: 3px 2px; border: 1px solid #e3ddd6; text-align: center; font-size: 8px; }
+.grid tr.alt td { background: #f9f9f9; }
+.grid td.sub { font-weight: bold; text-align: left; text-transform: uppercase; font-size: 7.5px; }
+.grid--wide th, .grid--wide td { font-size: 6.5px; padding: 3px 1px; }
+.grid--wide td.sub { font-size: 7px; }
+.grade { font-weight: bold; color: #041433; font-size: 10px; }
 .grade.fail { color: #b3121f; }
-.two td.col { vertical-align: top; }
-.box { border: 1px solid #cfc8bf; }
-.box th { background: #f7f2ee; text-align: left; padding: 4px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: .4px; color: #041433; border-bottom: 1px solid #cfc8bf; }
-.box td { padding: 4px 6px; border-bottom: 1px solid #ece7e1; }
-.box td.r { text-align: right; font-weight: bold; }
-.bars td { padding: 2px 4px; font-size: 8px; vertical-align: middle; }
-.bar { height: 6px; display: block; }
-.bar.me { background: #0a1f4a; }
-.bar.avg { background: #e2a52c; margin-top: 2px; }
-.key { font-size: 8px; color: #566070; margin: 3px 0 0; }
-.ratings th, .ratings td { padding: 3px 5px; border: 1px solid #cfc8bf; text-align: center; font-size: 9px; }
-.ratings th { background: #f7f2ee; }
-.ratings td.l, .ratings th.l { text-align: left; }
-.remark { border: 1px solid #cfc8bf; padding: 6px 8px; min-height: 34px; }
-.remark b { color: #041433; font-size: 9px; text-transform: uppercase; }
-.sign td { padding-top: 22px; text-align: center; font-size: 9px; color: #566070; }
-.sign td span { display: block; border-top: 1px solid #555; padding-top: 3px; margin: 0 18px; }
-.foot { margin: 8px 0 0; text-align: center; color: #8a8580; font-size: 8px; }
-@media print { .toolbar, .banner { display: none !important; } .sheet { border: 0; padding: 0; max-width: none; } }
+.stat td { padding: 4px 6px; border-bottom: 1px solid #e3ddd6; font-size: 8px; text-transform: uppercase; }
+.stat td.r { width: 38%; background: #f9f9f9; border-left: 1px solid #e3ddd6; }
+.bars td { padding: 2px 4px; font-size: 6.5px; vertical-align: middle; text-transform: uppercase; }
+.bar { height: 5px; display: block; }
+.bar.me { background: #36b8b8; }
+.bar.avg { background: #a98ee0; margin-top: 2px; }
+.key { font-size: 7px; color: #566070; margin: 3px 0 0; padding: 0 5px 4px; }
+.ratings th, .ratings td { padding: 3px 4px; border: 1px solid #e3ddd6; text-align: center; font-size: 7.5px; }
+.ratings th { background: #f9f9f9; }
+.ratings td.l, .ratings th.l { text-align: left; font-weight: bold; }
+.remark { padding: 3px 6px; font-size: 7.5px; min-height: 14px; }
+.sign td { padding-top: 24px; text-align: center; font-size: 8px; color: #566070; }
+.sign td span { display: block; border-top: 1px solid #555; padding-top: 3px; margin: 0 14px; }
+.foot { margin: 6px 0 0; text-align: center; color: #8a8580; font-size: 7px; }
+@media print { .toolbar, .banner { display: none !important; } .sheet { padding: 0; max-width: none; } }
 </style>
 </head>
 <body>
@@ -71,86 +81,48 @@ table { border-collapse: collapse; width: 100%; }
 @endif
 <div class="sheet">
     <table class="head"><tr>
-        <td style="width:90px">@if($logoSrc)<img src="{{ $logoSrc }}" alt="" style="height:64px;width:auto">@endif</td>
-        <td class="school"><h1>{{ $settings->school_name }}</h1>@if($settings->motto)<p class="motto">{{ $settings->motto }}</p>@endif<p class="meta">{{ $settings->address }}@if($settings->phone_primary) &middot; {{ $settings->phone_primary }}@endif @if($settings->email) &middot; {{ $settings->email }}@endif</p></td>
-        <td style="width:90px;text-align:right">@if($photoSrc)<img src="{{ $photoSrc }}" alt="" style="height:76px;width:auto;border:1px solid #cfc8bf">@endif</td>
+        <td style="width:92px">@if($logoSrc)<img src="{{ $logoSrc }}" alt="" style="height:74px;width:auto">@endif</td>
+        <td class="school"><h1>{{ $settings->school_name }}</h1>@if($settings->motto)<p class="motto">{{ $settings->motto }}</p>@endif<p class="meta"><strong>Address:</strong> {{ $settings->address }}</p>@if($settings->phone_primary)<p class="meta"><strong>Phone Number:</strong> {{ $settings->phone_primary }}</p>@endif @if($settings->email)<p class="meta"><strong>Email Address:</strong> {{ $settings->email }}</p>@endif</td>
     </tr></table>
     <div class="rule"></div>
-    <div class="title">{{ $term->name }} report &mdash; {{ $term->session?->name }} academic session</div>
-    <table class="info">
-        <tr><td class="k">Full name</td><td class="v">{{ strtoupper($student->last_name) }} {{ trim($student->first_name.' '.$student->other_names) }}</td><td class="k">Class (arm)</td><td class="v">{{ $reportClass?->name ?: '—' }}@if($reportArm) ({{ $reportArm->name }})@endif</td></tr>
-        <tr><td class="k">Gender</td><td class="v">{{ $student->gender ?: '—' }}</td><td class="k">Student ID</td><td class="v">{{ $student->student_number }}</td></tr>
-        <tr><td class="k">Date of birth (age)</td><td class="v">{{ $student->date_of_birth ? $student->date_of_birth->format('Y-m-d').' ('.$student->date_of_birth->age.' years)' : '—' }}</td><td class="k">Report for</td><td class="v">{{ $term->name }}, {{ $term->session?->name }}</td></tr>
-    </table>
 
-    <table class="grid{{ $showCumulative ? ' grid--cumulative' : '' }}" style="margin-top:8px">
-        <thead><tr><th class="l">Subject</th><th>CA 1</th>@if($showCa2)<th>CA 2</th>@endif @if($showCa3)<th>CA 3</th>@endif<th>Exam</th><th>Total</th>@if($showCumulative)<th>Cumulative total</th><th>Cumulative average</th>@endif<th>Class avg</th><th>Highest</th><th>Lowest</th><th>Position</th><th>Grade</th><th class="l">Remark</th></tr></thead>
-        <tbody>
-        @forelse($rows as $row)
-            <tr class="{{ $loop->even ? 'alt' : '' }}">
-                <td class="sub">{{ $row['subject'] }}</td>
-                <td>{{ $fmt($row['ca1']) }}</td>@if($showCa2)<td>{{ $fmt($row['ca2']) }}</td>@endif @if($showCa3)<td>{{ $fmt($row['ca3']) }}</td>@endif
-                <td>{{ $fmt($row['exam']) }}</td><td><strong>{{ $fmt($row['total']) }}</strong></td>@if($showCumulative)<td>{{ $fmt($row['cumulative_total']) }}</td><td>{{ $row['cumulative_average'] }}%</td>@endif
-                <td>{{ $fmt($row['average']) }}</td><td>{{ $fmt($row['highest']) }}</td><td>{{ $fmt($row['lowest']) }}</td>
-                <td>{{ $row['position'] }}/{{ $row['population'] }}</td>
-                <td class="grade{{ $row['grade'] === $failGrade ? ' fail' : '' }}">{{ $row['grade'] }}</td>
-                <td class="l">{{ $row['remark'] }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="{{ $columnCount }}" style="padding:14px;color:#566070">No results are available for this term yet.</td></tr>
-        @endforelse
-        </tbody>
-    </table>
-    @if($showCumulative)<p class="key">Cumulative figures include only {{ $includeUnpublished ? 'published or pending' : 'published' }} results saved for this student through {{ $term->name }}. Terms without a saved score are omitted.</p>@endif
-
-    <table class="two" style="margin-top:10px"><tr>
-        <td class="col" style="width:38%;padding-right:10px">
-            <table class="box">
-                <tr><th colspan="2">Result summary</th></tr>
-                <tr><td>Total students in {{ $reportClass?->name ?: 'class' }}</td><td class="r">{{ $summary['class_total'] ?: '—' }}</td></tr>
-                <tr><td>Class term position</td><td class="r">{{ $summary['class_position'] ?: '—' }}</td></tr>
-                @if($reportArm)<tr><td>Total students in {{ $reportClass?->name ?: 'class' }} ({{ $reportArm->name }})</td><td class="r">{{ $summary['arm_total'] ?: '—' }}</td></tr>
-                <tr><td>Class arm position</td><td class="r">{{ $summary['arm_position'] ?: '—' }}</td></tr>@endif
-                <tr><td>Total term score</td><td class="r">{{ $fmt($summary['total_score']) }}</td></tr>
-                <tr><td>Average term score</td><td class="r">{{ number_format($summary['average'], 2) }}% ({{ $summary['overall']['grade'] }})</td></tr>
-                <tr><td>Subjects offered</td><td class="r">{{ $summary['offered'] }}</td></tr>
-                <tr><td>Subjects passed (pass mark {{ $fmt($summary['pass_mark']) }})</td><td class="r">{{ $summary['passed'] }}</td></tr>
-                <tr><td>Subjects failed</td><td class="r">{{ $summary['failed'] }}</td></tr>
+    <table class="bio"><tr>
+        <td style="width:80%;padding:0">
+            <table class="bio">
+                <tr><td class="k">Full Name (Gender):</td><td class="v"><strong>{{ strtoupper($student->last_name) }}</strong> {{ trim($student->first_name.' '.$student->other_names) }}@if($student->gender) ({{ $student->gender }})@endif</td></tr>
+                <tr><td class="k">Date of Birth (Age):</td><td class="v">{{ $student->date_of_birth ? $student->date_of_birth->format('Y-m-d').' ('.$student->date_of_birth->age.' years of age)' : '—' }}</td></tr>
+                <tr><td class="k">Student Class:</td><td class="v">{{ $reportClass?->name ?: '—' }}@if($reportArm) ({{ $reportArm->name }})@endif</td></tr>
+                <tr><td class="k">Report Sheet For:</td><td class="v">{{ $term->name }}, {{ $term->session?->name }} Academic Session</td></tr>
             </table>
         </td>
-        <td class="col" style="width:31%;padding-right:10px">
-            <table class="box">
-                <tr><th>Class performance (score vs class average)</th></tr>
-                <tr><td>
-                    <table class="bars">
-                    @foreach($rows as $row)
-                        <tr><td style="width:34%">{{ \Illuminate\Support\Str::limit($row['subject'], 18) }}</td>
-                        <td><span class="bar me" style="width: {{ max(2, min(100, (float) $row['total'])) }}%"></span><span class="bar avg" style="width: {{ max(2, min(100, (float) $row['average'])) }}%"></span></td></tr>
-                    @endforeach
-                    </table>
-                    <p class="key"><span style="color:#0a1f4a">&#9632;</span> Student &nbsp; <span style="color:#e2a52c">&#9632;</span> Class average</p>
-                </td></tr>
-            </table>
-        </td>
-        <td class="col" style="width:31%">
-            @if($ratings->isNotEmpty())
-            <table class="ratings">
-                <tr><th class="l">Skills &amp; behaviour</th>@foreach($labels as $value => $label)<th>{{ $value }}</th>@endforeach</tr>
-                @foreach($ratings as $rating)
-                    <tr><td class="l">{{ $rating->trait?->name }}</td>@foreach($labels as $value => $label)<td>{{ (int) $rating->rating === $value ? '✓' : '' }}</td>@endforeach</tr>
-                @endforeach
-            </table>
-            <p class="key">1 Poor &middot; 2 Fair &middot; 3 Good &middot; 4 Very good &middot; 5 Excellent</p>
-            @endif
-        </td>
+        <td class="photo" style="width:20%">@if($photoSrc)<img src="{{ $photoSrc }}" alt="Passport photograph">@else<span class="ph">Passport photograph</span>@endif</td>
     </tr></table>
+    <div class="rule"></div>
 
-    <table style="margin-top:8px"><tr>
-        <td style="width:50%;padding-right:6px"><div class="remark"><b>Class teacher’s remark</b><br>{{ $teacherRemark ?: '—' }}</div></td>
-        <td style="width:50%;padding-left:6px"><div class="remark"><b>Principal’s remark</b><br>{{ $principalRemark ?: '—' }}</div></td>
-    </tr></table>
-    <p class="key" style="margin-top:6px">Grading: @foreach($bands as $band){{ $band['grade'] }} = {{ $band['min_score'] }}–{{ $band['max_score'] }}@if(! $loop->last) &middot; @endif @endforeach</p>
-    <table class="sign"><tr><td><span>Class teacher</span></td><td><span>Principal</span></td><td><span>Parent / Guardian</span></td></tr></table>
+    @if($showCumulative)
+        @include('portal.report._table')
+        <table style="margin-top:2px"><tr>
+            <td style="width:34%;vertical-align:top;padding-right:6px">@include('portal.report._analysis')</td>
+            <td style="width:33%;vertical-align:top;padding-right:6px">@include('portal.report._graph')</td>
+            <td style="width:33%;vertical-align:top">@include('portal.report._behaviour')</td>
+        </tr></table>
+        @include('portal.report._remarks')
+    @else
+        <table><tr>
+            <td style="width:61%;vertical-align:top;padding-right:8px">
+                @include('portal.report._table')
+                @include('portal.report._analysis')
+                @include('portal.report._remarks')
+            </td>
+            <td style="width:39%;vertical-align:top">
+                @include('portal.report._graph')
+                @include('portal.report._behaviour')
+            </td>
+        </tr></table>
+    @endif
+
+    <p class="key" style="padding:0">Grading: @foreach($bands as $band){{ $band['grade'] }} = {{ $band['min_score'] }}–{{ $band['max_score'] }}@if(! $loop->last) &middot; @endif @endforeach</p>
+    <table class="sign"><tr><td><span>Class teacher{{ ($classTeacherName ?? null) ? ': '.$classTeacherName : '' }}</span></td><td><span>Principal</span></td><td><span>Parent / Guardian</span></td></tr></table>
     <p class="foot">Generated {{ now()->format('Y-m-d H:i') }} for {{ $student->fullName() }}</p>
 </div>
 @if(! $isPdf)@vite(['resources/js/app.js'])@endif

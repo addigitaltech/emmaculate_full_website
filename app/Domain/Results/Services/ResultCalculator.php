@@ -52,14 +52,21 @@ final class ResultCalculator
 
     public function gradeFor(float $score, ?array $bands = null): array
     {
-        $effective = $bands ?: self::DEFAULT_GRADE_BANDS;
+        // Pick the highest band whose minimum the score reaches. Matching on the minimum only (not the band's
+        // maximum) means fractional scores such as 69.5 can never fall into the gap between "60-69" and "70-100".
+        $effective = collect($bands ?: self::DEFAULT_GRADE_BANDS)
+            ->sortByDesc(fn ($band) => (float) $band['min_score'])
+            ->values();
         foreach ($effective as $band) {
-            if ($score >= (float) $band['min_score'] && $score <= (float) $band['max_score']) {
+            if ($score >= (float) $band['min_score']) {
                 return ['grade' => (string) $band['grade'], 'remark' => (string) $band['remark']];
             }
         }
-        return $score >= 70
-            ? ['grade' => 'A', 'remark' => 'Excellent']
+
+        $lowest = $effective->last();
+
+        return $lowest
+            ? ['grade' => (string) $lowest['grade'], 'remark' => (string) $lowest['remark']]
             : ['grade' => 'F', 'remark' => 'Fail'];
     }
 

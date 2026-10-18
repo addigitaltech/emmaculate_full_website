@@ -5,6 +5,7 @@ namespace App\Domain\Results\Services;
 use App\Models\AcademicTerm;
 use App\Models\AffectiveRating;
 use App\Models\Arm;
+use App\Models\ClassTeacher;
 use App\Models\Result;
 use App\Models\SchoolClass;
 use App\Models\SchoolSettings;
@@ -67,21 +68,41 @@ final class TermReportBuilder
             ? collect()
             : \App\Models\Subject::query()->whereIn('id', $mine->pluck('subject_id'))->orderBy('name')->get()->keyBy('id');
 
-        $cumulativeTermIds = AcademicTerm::query()
+        $bands = $this->sheets->gradeBands();
+        $cumulativeTerms = AcademicTerm::query()
             ->where('academic_session_id', $term->academic_session_id)
             ->where('sequence', '<=', $term->sequence)
-            ->pluck('id');
-        $cumulativeBySubject = Result::query()
+            ->orderBy('sequence')
+            ->get(['id', 'sequence', 'name']);
+        $cumulativeResults = Result::query()
             ->where('student_id', $student->id)
             ->where('academic_session_id', $term->academic_session_id)
-            ->whereIn('academic_term_id', $cumulativeTermIds)
+            ->whereIn('academic_term_id', $cumulativeTerms->pluck('id'))
             ->where('is_offered', true)
             ->when($includeUnpublished, fn ($query) => $query->whereIn('status', ['pending', 'published']), fn ($query) => $query->where('status', 'published'))
-            ->get()
+            ->get();
+        $cumulativeBySubject = $cumulativeResults
             ->groupBy('subject_id')
-            ->map(fn (Collection $results): array => $this->calculator->cumulativeAverage($results->pluck('total_score')->all()));
+            ->map(function (Collection $results) use ($cumulativeTerms, $bands): array {
+                $calculated = $this->calculator->cumulativeAverage($results->pluck('total_score')->all());
+                $count = max(1, (int) $calculated['cumulative_terms_count']);
+                $average = round($calculated['cumulative_total'] / $count, 2);
 
-        $rows = $mine->sortBy(fn (Result $result) => $subjects[$result->subject_id]->name ?? '')->values()->map(function (Result $result) use ($population, $subjects, $term, $classId, $cumulativeBySubject): array {
+                return [
+                    'cumulative_total' => $calculated['cumulative_total'],
+                    'cumulative_average' => $average,
+                    'cumulative_grade' => $this->calculator->gradeFor($average, $bands)['grade'],
+                    'cumulative_terms_count' => $calculated['cumulative_terms_count'],
+                    // 1st, 2nd and 3rd term totals for this subject (null when that term has no saved score)
+                    'term_totals' => $cumulativeTerms->mapWithKeys(function ($termRow) use ($results): array {
+                        $line = $results->firstWhere('academic_term_id', $termRow->id);
+
+                        return [(int) $termRow->sequence => $line ? (float) $line->total_score : null];
+                    })->all(),
+                ];
+            });
+
+        $rows = $mine->sortBy(fn (Result $result) => $subjects[$result->subject_id]->name ?? '')->values()->map(function (Result $result) use ($population, $subjects, $term, $classId, $cumulativeBySubject, $bands): array {
             $scores = $population->where('subject_id', $result->subject_id)->pluck('total_score')->map(fn ($value) => (float) $value)->values();
             $score = (float) $result->total_score;
             $maxima = $this->sheets->maxima((int) $term->academic_session_id, (int) $term->id, $classId, (int) $result->subject_id);
@@ -97,8 +118,10 @@ final class TermReportBuilder
                 'grade' => $result->grade,
                 'remark' => $result->remark,
                 'cumulative_total' => $cumulative['cumulative_total'] ?? $score,
-                'cumulative_average' => $cumulative['cumulative_average'] ?? (int) round($score),
+                'cumulative_average' => $cumulative['cumulative_average'] ?? round($score, 2),
+                'cumulative_grade' => $cumulative['cumulative_grade'] ?? $this->calculator->gradeFor($score, $bands)['grade'],
                 'cumulative_terms_count' => $cumulative['cumulative_terms_count'] ?? 1,
+                'term_totals' => $cumulative['term_totals'] ?? [(int) $term->sequence => $score],
                 'average' => $scores->isNotEmpty() ? round($scores->avg(), 1) : 0.0,
                 'highest' => $scores->isNotEmpty() ? (float) $scores->max() : 0.0,
                 'lowest' => $scores->isNotEmpty() ? (float) $scores->min() : 0.0,
@@ -112,12 +135,30 @@ final class TermReportBuilder
         $classAverages = $this->averages($population);
         $armPopulation = $armId ? $population->where('arm_id', $armId)->values() : $population;
         $armAverages = $this->averages($armPopulation);
-        $bands = $this->sheets->gradeBands();
-
         $totalScore = collect($rows)->sum('total');
         $count = count($rows);
         $average = $count ? round($totalScore / $count, 2) : 0.0;
         $passed = collect($rows)->filter(fn (array $row) => $row['total'] >= (float) $settings->pass_percentage)->count();
+
+        // Cumulative position (terms 2 and 3): rank by each student's cumulative average, which is the mean of
+        // that student's per-subject averages over the terms of the session so far, among every entered result.
+        $cumulativeClassAverages = null;
+        if ((int) $term->sequence > 1) {
+            $cumulativeClassAverages = Result::query()
+                ->where('academic_session_id', $term->academic_session_id)
+                ->whereIn('academic_term_id', $cumulativeTerms->pluck('id'))
+                ->where('school_class_id', $classId)
+                ->where('is_offered', true)
+                ->get()
+                ->groupBy('student_id')
+                ->map(fn (Collection $studentRows): float => round((float) $studentRows->groupBy('subject_id')->map(fn (Collection $subjectRows) => (float) $subjectRows->avg(fn (Result $result) => (float) $result->total_score))->avg(), 2));
+        }
+        $cumulativeTotal = round((float) collect($rows)->sum('cumulative_total'), 2);
+        $cumulativeAverage = $count ? round((float) collect($rows)->avg('cumulative_average'), 2) : 0.0;
+        $classTeacher = ClassTeacher::query()->with('teacher')
+            ->where('school_class_id', $classId)
+            ->when($armId, fn ($query) => $query->where('arm_id', $armId), fn ($query) => $query->whereNull('arm_id'))
+            ->first();
 
         $remarks = TermRemark::query()
             ->where('student_id', $student->id)
@@ -162,7 +203,13 @@ final class TermReportBuilder
                 'passed' => $passed,
                 'failed' => $count - $passed,
                 'pass_mark' => (float) $settings->pass_percentage,
+                'cumulative_total' => $cumulativeTotal,
+                'cumulative_average' => $cumulativeAverage,
+                'cumulative_grade' => $this->calculator->gradeFor($cumulativeAverage, $bands)['grade'],
+                'cumulative_position' => $cumulativeClassAverages ? $this->rank($cumulativeClassAverages, (int) $student->id) : null,
             ],
+            'cumulativeTerms' => $cumulativeTerms,
+            'classTeacherName' => $classTeacher?->teacher?->fullName(),
             'ratings' => $ratings,
             'teacherRemark' => $remarks?->teacher_remark,
             'principalRemark' => $remarks?->principal_remark,

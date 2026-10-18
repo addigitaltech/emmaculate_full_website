@@ -40,6 +40,8 @@ class PortalSettings extends Page implements HasForms
             'admission_portal_enabled' => (bool) $s->admission_portal_enabled,
             'public_result_check_enabled' => (bool) $s->public_result_check_enabled,
             'payment_gate_results' => (bool) $s->payment_gate_results,
+            'require_pin_student_login' => (bool) $s->require_pin_student_login,
+            'require_pin_result_check' => (bool) $s->require_pin_result_check,
             'show_admin_link' => (bool) $s->show_admin_link,
             'promotion_mode' => $s->promotion_mode ?? 'manual',
             'promotion_min_average' => $s->promotion_min_average,
@@ -61,6 +63,10 @@ class PortalSettings extends Page implements HasForms
                     ->helperText('On: parents sign in with their email and see their children. Off: parents cannot sign in.'),
                 Forms\Components\Toggle::make('public_result_check_enabled')->label('Results portal: "Check Result" (no sign-in)')
                     ->helperText('On: a Results Portal link appears, where anyone with an admission number and surname can view published results. Off: the link and page are hidden.'),
+                Forms\Components\Toggle::make('require_pin_student_login')->label('Require PIN to sign in (student portal)')
+                    ->helperText('On: students must also type the 6-digit PIN from their PIN slip. Off: admission number and surname are enough. Issue PIN slips first (Students > Issue PIN slips), then switch this on.'),
+                Forms\Components\Toggle::make('require_pin_result_check')->label('Require PIN to check results (Check Result page)')
+                    ->helperText('On: the public Check Result page also asks for the student’s 6-digit PIN. Off: admission number and surname are enough.'),
                 Forms\Components\Toggle::make('payment_gate_results')->label('Hold results until school fees are paid')
                     ->helperText('On: a student with unpaid fees cannot open results.'),
             ])->columns(2)->visible(fn (): bool => (bool) auth()->user()?->hasRole('Super Admin')),
@@ -107,6 +113,8 @@ class PortalSettings extends Page implements HasForms
             'admission_portal_enabled' => (bool) ($d['admission_portal_enabled'] ?? false),
             'public_result_check_enabled' => (bool) ($d['public_result_check_enabled'] ?? false),
             'payment_gate_results' => (bool) ($d['payment_gate_results'] ?? false),
+            'require_pin_student_login' => (bool) ($d['require_pin_student_login'] ?? false),
+            'require_pin_result_check' => (bool) ($d['require_pin_result_check'] ?? false),
             'show_admin_link' => (bool) ($d['show_admin_link'] ?? false),
             ];
         }

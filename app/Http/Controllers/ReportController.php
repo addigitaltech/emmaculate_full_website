@@ -41,7 +41,7 @@ class ReportController extends Controller
         $data = $builder->build($student, $term, $staffView);
         if ($request->query('download') === 'pdf') {
             AuditLog::record($user, 'results.report_downloaded', $student, ['term_id' => $term->id]);
-            $pdf = Pdf::loadView('portal.report', $data + ['isPdf' => true])->setPaper('a4', 'landscape');
+            $pdf = Pdf::loadView('portal.report', $data + ['isPdf' => true])->setPaper('a4', 'portrait');
 
             return $pdf->download('report-'.Str::slug($student->fullName()).'-'.$term->id.'.pdf');
         }

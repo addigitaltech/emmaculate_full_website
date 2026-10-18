@@ -27,7 +27,7 @@
                         @endphp
                         <tr data-row>
                             <td>{{ $loop->iteration }}</td>
-                            <td><strong>{{ strtoupper($student->last_name) }}</strong>, {{ trim($student->first_name.' '.$student->other_names) }}<div class="muted" style="font-size:.75rem">{{ $student->student_number }}</div></td>
+                            <td><div style="display:flex;align-items:center;gap:.6rem">@if($student->photo)<img src="{{ $student->photo->url() }}" alt="Passport photograph of {{ $student->first_name }}" width="36" height="36" style="border-radius:50%;object-fit:cover">@endif<div><strong>{{ strtoupper($student->last_name) }}</strong>, {{ trim($student->first_name.' '.$student->other_names) }}<div class="muted" style="font-size:.75rem">{{ $student->student_number }}</div></div></div></td>
                             <td>@if(! $locked)<input type="hidden" name="rows[{{ $student->id }}][offered]" value="0"><input data-offered type="checkbox" name="rows[{{ $student->id }}][offered]" value="1" @checked($offered) aria-label="{{ $student->first_name }} offers this subject">@else<span class="muted">{{ $offered ? 'Yes' : 'No' }}</span>@endif</td>
                             @foreach(['ca1' => 'ca1_score', 'ca2' => 'ca2_score', 'ca3' => 'ca3_score', 'exam' => 'exam_score'] as $key => $column)
                                 @if($maxima[$key] > 0)

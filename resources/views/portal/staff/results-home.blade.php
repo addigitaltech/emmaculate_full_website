@@ -40,6 +40,35 @@
         </div>
     @endif
 
+    @if($isAdmin && $feeGateOn)
+    <div class="panel">
+        <div class="panel__head"><h2>Reports withheld for unpaid fees</h2><span class="muted" style="font-size:.85rem">{{ $withheld->count() }} student{{ $withheld->count() === 1 ? '' : 's' }} with published results this term</span></div>
+        <div class="panel__body">
+            @if($withheld->isEmpty())
+                <p class="empty-state">No published report is being withheld right now.</p>
+            @else
+                <p class="muted" style="font-size:.85rem;margin:0 0 .6rem">Their results, grades and positions are calculated as normal. Only the student and parent are blocked from viewing them until the fees are cleared; staff can still open and print them.</p>
+                <div style="overflow-x:auto">
+                    <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+                        <thead><tr style="text-align:left;border-bottom:1px solid #ddd"><th style="padding:.4rem">Student</th><th style="padding:.4rem">Class</th><th style="padding:.4rem">Unpaid items</th><th style="padding:.4rem">Amount due</th><th style="padding:.4rem"></th></tr></thead>
+                        <tbody>
+                        @foreach($withheld as $row)
+                            <tr style="border-bottom:1px solid #eee">
+                                <td style="padding:.4rem"><strong>{{ strtoupper($row['student']->last_name) }}</strong>, {{ $row['student']->first_name }}<div class="muted" style="font-size:.75rem">{{ $row['student']->student_number }}</div></td>
+                                <td style="padding:.4rem">{{ $row['student']->schoolClass?->name }}@if($row['student']->arm) &middot; {{ $row['student']->arm->name }}@endif</td>
+                                <td style="padding:.4rem">{{ $row['items'] }}</td>
+                                <td style="padding:.4rem">{{ $row['currency'] }} {{ number_format((float) $row['amount'], 2) }}</td>
+                                <td style="padding:.4rem"><a class="chip-link" href="{{ route('reports.show', ['student' => $row['student']->id, 'term' => $term->id]) }}">View report</a></td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <div class="panel">
         <div class="panel__head"><h2>{{ $isAdmin ? 'Classes' : 'My classes' }}</h2><span class="muted" style="font-size:.85rem">Open a class to see its students, enter full result sheets or print reports</span></div>
         <div class="panel__body">

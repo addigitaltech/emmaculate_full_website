@@ -5,7 +5,7 @@
 @php
     $bandData = collect($bands)->map(fn ($band) => ['min' => $band['min_score'], 'max' => $band['max_score'], 'grade' => $band['grade']])->values();
     $failGrade = collect($bands)->sortBy('min_score')->first()['grade'] ?? 'F';
-    $labels = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very good', 5 => 'Excellent'];
+    $labels = [1 => 'Fair', 2 => 'Pass', 3 => 'Good', 4 => 'Very good', 5 => 'Excellent'];
 @endphp
 <div class="portal-body"><div class="site-container">
     @if(session('success'))<div role="status" class="alert alert--ok" style="margin-bottom:1rem">{{ session('success') }}</div>@endif
@@ -69,7 +69,7 @@
 
         @if($canRateBehaviour && $traits->isNotEmpty())
         <div class="panel">
-            <div class="panel__head"><h2>Skills and behaviour</h2><span class="muted" style="font-size:.85rem">1 = Poor &middot; 2 = Fair &middot; 3 = Good &middot; 4 = Very good &middot; 5 = Excellent</span></div>
+            <div class="panel__head"><h2>Skills and behaviour</h2><span class="muted" style="font-size:.85rem">1 = Fair &middot; 2 = Pass &middot; 3 = Good &middot; 4 = Very good &middot; 5 = Excellent</span></div>
             <div class="table-wrap">
                 <table class="table rating-grid">
                     <thead><tr><th>Assessment</th>@foreach($labels as $value => $label)<th>{{ $value }} <span style="font-weight:500;text-transform:none;letter-spacing:0">({{ $label }})</span></th>@endforeach</tr></thead>

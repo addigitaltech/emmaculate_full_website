@@ -41,6 +41,18 @@ final class PortalAccess
         return (bool) SchoolSettings::current()->public_result_check_enabled;
     }
 
+    /** System setting: students must also enter their PIN to sign in. */
+    public static function studentPinRequired(): bool
+    {
+        return (bool) SchoolSettings::current()->require_pin_student_login;
+    }
+
+    /** System setting: the public Check Result page also asks for the student's PIN. */
+    public static function checkerPinRequired(): bool
+    {
+        return (bool) SchoolSettings::current()->require_pin_result_check;
+    }
+
     /** @param  string  $portal  student, parent or staff */
     public static function enabled(string $portal): bool
     {

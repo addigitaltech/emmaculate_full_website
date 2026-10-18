@@ -13,6 +13,14 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Collection;
+use App\Domain\Results\Services\StudentPinService;
+use App\Models\AuditLog;
+use App\Models\SchoolSettings;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class StudentResource extends AuthorizedResource
 {
@@ -34,7 +42,33 @@ class StudentResource extends AuthorizedResource
             Forms\Components\DatePicker::make('date_of_birth')->maxDate(now()),
             Forms\Components\Select::make('school_class_id')->label('Class')->relationship('schoolClass', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true))->searchable()->preload()->live()->afterStateUpdated(fn (Set $set) => $set('arm_id', null)),
             Forms\Components\Select::make('arm_id')->label('Arm')->options(fn (Get $get) => Arm::query()->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->orderBy('name')->pluck('name', 'id'))->searchable()->placeholder('No arm'),
-            Forms\Components\Select::make('photo_id')->label('Photo')->relationship('photo', 'original_name', modifyQueryUsing: fn ($query) => $query->where('mime_type', 'like', 'image/%'))->searchable()->preload()->placeholder('No photo'),
+            Forms\Components\Select::make('photo_id')->label('Passport photograph')->relationship('photo', 'original_name', modifyQueryUsing: fn ($query) => $query->where('mime_type', 'like', 'image/%'))->searchable()->preload()->placeholder('No passport photograph')
+                ->helperText('Choose an existing photo, or use the + button to upload a passport photograph straight from this page.')
+                ->createOptionModalHeading('Upload passport photograph')
+                ->createOptionForm([
+                    Forms\Components\FileUpload::make('path')->label('Passport photograph (JPEG, PNG or WebP, up to 2 MB)')->disk('public')->directory('student-passports')->visibility('public')->storeFileNamesIn('original_name')->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(2048)->required(),
+                ])
+                ->createOptionUsing(function (array $data): int {
+                    $path = (string) ($data['path'] ?? '');
+                    if (! str_starts_with($path, 'student-passports/') || str_contains($path, '..') || ! Storage::disk('public')->exists($path)) {
+                        throw ValidationException::withMessages(['path' => 'Choose a valid passport photograph to upload.']);
+                    }
+                    $mime = Storage::disk('public')->mimeType($path) ?: '';
+                    if (! in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true) || Storage::disk('public')->size($path) > 2 * 1024 * 1024) {
+                        Storage::disk('public')->delete($path);
+                        throw ValidationException::withMessages(['path' => 'The passport must be a JPEG, PNG or WebP image of 2 MB or less.']);
+                    }
+
+                    return MediaAsset::query()->create([
+                        'uploaded_by' => auth()->id(),
+                        'original_name' => $data['original_name'] ?? basename($path),
+                        'path' => $path,
+                        'disk' => 'public',
+                        'mime_type' => $mime,
+                        'size_bytes' => Storage::disk('public')->size($path),
+                        'alt_text' => 'Student passport photograph',
+                    ])->getKey();
+                }),
             Forms\Components\DatePicker::make('admission_date'),
             Forms\Components\Select::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive', 'graduated' => 'Graduated', 'transferred' => 'Transferred'])->default('active')->required(),
         ])->columns(2);
@@ -66,8 +100,46 @@ class StudentResource extends AuthorizedResource
                     return $term ? route('reports.show', ['student' => $record->id, 'term' => $term->id]) : null;
                 }, shouldOpenInNewTab: true)
                 ->visible(fn () => (bool) auth()->user()?->can('manage results')),
+            Tables\Actions\Action::make('issuePin')->label('PIN slip')->icon('heroicon-o-key')->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Issue a new PIN')
+                ->modalDescription('This creates a new 6-digit PIN for the student (any earlier PIN stops working) and downloads a printable slip. The PIN is shown only on that slip.')
+                ->action(fn (Student $record) => static::pinSlipsResponse(collect([$record])))
+                ->visible(fn () => (bool) auth()->user()?->can('manage students')),
             Tables\Actions\EditAction::make(),
-        ])->bulkActions([]);
+        ])->bulkActions([
+            Tables\Actions\BulkAction::make('issuePins')->label('Issue PIN slips')->icon('heroicon-o-key')->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Issue PINs for the selected students')
+                ->modalDescription('Creates a new 6-digit PIN for every selected active student (earlier PINs stop working) and downloads printable slips. PINs are shown only on the slips.')
+                ->deselectRecordsAfterCompletion()
+                ->action(fn (Collection $records) => static::pinSlipsResponse($records))
+                ->visible(fn () => (bool) auth()->user()?->can('manage students')),
+        ]);
+    }
+
+    /** Issue PINs for the given students and return the printable A4 slips. PINs are never stored in readable form. */
+    protected static function pinSlipsResponse(Collection $students)
+    {
+        abort_unless(auth()->user()?->can('manage students'), 403);
+        $students = $students->filter(fn (Student $student) => $student->status === 'active')->values();
+        if ($students->isEmpty()) {
+            Notification::make()->title('Select at least one active student')->warning()->send();
+
+            return null;
+        }
+
+        $service = app(StudentPinService::class);
+        $slips = $students->map(fn (Student $student) => ['student' => $student->loadMissing(['schoolClass', 'arm']), 'pin' => $service->issue($student)]);
+        AuditLog::record(auth()->user(), 'students.pins_issued', null, ['count' => $slips->count()]);
+
+        $pdf = Pdf::loadView('portal.pin-slips', ['slips' => $slips, 'settings' => SchoolSettings::current(), 'loginUrl' => route('login.student')])
+            ->setPaper('a4', 'portrait')
+            ->output();
+
+        return response()->streamDownload(function () use ($pdf): void {
+            echo $pdf;
+        }, 'student-pin-slips-'.now()->format('Ymd-His').'.pdf', ['Content-Type' => 'application/pdf']);
     }
 
     public static function getRelations(): array { return []; }

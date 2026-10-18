@@ -22,6 +22,18 @@ class ResultCalculatorTest extends TestCase
     }
 
     #[Test]
+    public function fractional_scores_between_bands_get_the_band_below_never_a_fail(): void
+    {
+        $calculator = new ResultCalculator();
+        self::assertSame('B', $calculator->gradeFor(69.5)['grade']);
+        self::assertSame('C', $calculator->gradeFor(59.99)['grade']);
+        self::assertSame('D', $calculator->gradeFor(49.5)['grade']);
+        self::assertSame('E', $calculator->gradeFor(44.5)['grade']);
+        self::assertSame('F', $calculator->gradeFor(39.5)['grade']);
+        self::assertSame('A', $calculator->gradeFor(100)['grade']);
+    }
+
+    #[Test]
     public function it_calculates_totals_on_the_server_and_rejects_out_of_range_scores(): void
     {
         $calculator = new ResultCalculator();

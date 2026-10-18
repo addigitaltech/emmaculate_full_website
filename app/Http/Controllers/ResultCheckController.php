@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Auth\Support\PortalAccess;
 use App\Domain\Results\Services\StudentLookup;
+use App\Domain\Results\Services\StudentPinService;
 use App\Domain\Results\Services\TermReportBuilder;
 use App\Models\AcademicTerm;
 use App\Models\AuditLog;
@@ -18,24 +19,25 @@ use Illuminate\View\View;
 
 /**
  * Public "check my result" page for when student and parent portals are switched off.
- * Admission number + surname, current published term only, read-only, links expire after 20 minutes.
+ * Admission number + surname (+ PIN when the system setting is on), current published term only, read-only, links expire after 20 minutes.
  */
 class ResultCheckController extends Controller
 {
-    private const GENERIC_ERROR = 'No published result was found for those details. Check the admission number and type the surname in CAPITAL LETTERS, or contact the school.';
+    private const GENERIC_ERROR = 'No published result was found for those details. Check the admission number, the surname in CAPITAL LETTERS and the PIN, or contact the school.';
 
     public function form(): View
     {
         return $this->page(['enabled' => PortalAccess::checkerEnabled(), 'student' => null, 'links' => []]);
     }
 
-    public function lookup(Request $request, StudentLookup $lookup)
+    public function lookup(Request $request, StudentLookup $lookup, StudentPinService $pins)
     {
         abort_unless(PortalAccess::checkerEnabled(), 404);
+        $pinRequired = PortalAccess::checkerPinRequired();
         $data = $request->validate([
             'admission_number' => ['required', 'string', 'max:60'],
             'surname' => ['required', 'string', 'max:80'],
-        ]);
+        ] + ($pinRequired ? ['pin' => ['required', 'string', 'regex:/^\s*\d{6}\s*$/']] : []), ['pin.regex' => 'Enter the 6-digit PIN from your PIN slip.']);
 
         $key = 'result-check:'.hash('sha256', StudentLookup::normaliseNumber($data['admission_number']).'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($key, 5)) {
@@ -44,6 +46,20 @@ class ResultCheckController extends Controller
 
         $student = $lookup->find($data['admission_number'], $data['surname']);
         if (! $student) {
+            RateLimiter::hit($key, 900);
+
+            return back()->withErrors(['admission_number' => self::GENERIC_ERROR])->onlyInput('admission_number');
+        }
+
+        // The PIN is checked only while "Require PIN to check results" is switched on in the system settings.
+        $outcome = $pinRequired ? $pins->attempt($student, (string) ($data['pin'] ?? '')) : 'ok';
+        if ($outcome === 'no_pin') {
+            return back()->withErrors(['admission_number' => 'No PIN has been issued for this student yet. Please contact the school office for your PIN slip.'])->onlyInput('admission_number');
+        }
+        if ($outcome === 'locked') {
+            return back()->withErrors(['admission_number' => 'Checking is locked for a while after too many wrong PINs. Try again later, or contact the school to reset your PIN.'])->onlyInput('admission_number');
+        }
+        if ($outcome !== 'ok') {
             RateLimiter::hit($key, 900);
 
             return back()->withErrors(['admission_number' => self::GENERIC_ERROR])->onlyInput('admission_number');
@@ -83,7 +99,7 @@ class ResultCheckController extends Controller
         if ($request->query('download') === 'pdf') {
             AuditLog::record(null, 'results.public_report_downloaded', $student, ['term_id' => $term->id]);
 
-            return Pdf::loadView('portal.report', $data + ['isPdf' => true])->setPaper('a4', 'landscape')
+            return Pdf::loadView('portal.report', $data + ['isPdf' => true])->setPaper('a4', 'portrait')
                 ->download('report-'.Str::slug($student->fullName()).'-'.$term->id.'.pdf');
         }
 

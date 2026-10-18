@@ -2,7 +2,7 @@
 @section('title', 'Check Result | '.$settings->short_name)
 @section('description', 'Check a published result with an admission number and surname.')
 @section('content')
-<x-page-hero eyebrow="Results" title="Check Result" lead="Enter the admission number and the surname in CAPITAL LETTERS to view published results." :image="$heroImage" :crumbs="[['Home', route('home')], ['Check Result', null]]" />
+<x-page-hero eyebrow="Results" title="Check Result" :lead="\App\Domain\Auth\Support\PortalAccess::checkerPinRequired() ? 'Enter the admission number, the surname in CAPITAL LETTERS and your PIN to view published results.' : 'Enter the admission number and the surname in CAPITAL LETTERS to view published results.'" :image="$heroImage" :crumbs="[['Home', route('home')], ['Check Result', null]]" />
 <section class="section">
     <div class="site-container" style="max-width:44rem">
         @if(! $enabled)
@@ -26,8 +26,12 @@
                     @csrf
                     <label class="field">Admission number<input name="admission_number" value="{{ old('admission_number') }}" required maxlength="60" autocomplete="off" autocapitalize="characters" class="upper-input"></label>
                     <label class="field">Surname (CAPITAL LETTERS)<input name="surname" required maxlength="80" autocomplete="off" autocapitalize="characters" class="upper-input"></label>
+                    @if(\App\Domain\Auth\Support\PortalAccess::checkerPinRequired())
+                    <label class="field">PIN (6 digits from your PIN slip)<input name="pin" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off"></label>
+                    @endif
                     @error('admission_number')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     @error('surname')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
+                    @error('pin')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     <button type="submit" class="btn btn--maroon btn--block">View result</button>
                 </form>
                 <p class="muted" style="font-size:.82rem;margin:1rem 0 0">Only results the school has published are shown. Having trouble? <a href="{{ route('contact') }}" style="text-decoration:underline">Contact the school</a>.</p>
