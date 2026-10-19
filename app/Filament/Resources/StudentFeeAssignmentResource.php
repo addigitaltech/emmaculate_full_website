@@ -41,7 +41,7 @@ class StudentFeeAssignmentResource extends AuthorizedResource
     public static function table(Table $table): Table
     {
         return $table->modifyQueryUsing(fn ($query) => $query->with(['student', 'feeType']))->columns([
-            Tables\Columns\TextColumn::make('student.student_number')->label('Student number')->searchable()->sortable(),
+            Tables\Columns\TextColumn::make('student.student_number')->label('Student ID')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('student.first_name')->label('Student')->formatStateUsing(fn ($state, StudentFeeAssignment $record) => $record->student?->fullName() ?? '—')->searchable(),
             Tables\Columns\TextColumn::make('feeType.name')->label('Fee')->searchable(),
             Tables\Columns\TextColumn::make('amount_due')->money('NGN')->sortable(),

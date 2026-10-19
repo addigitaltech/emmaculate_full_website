@@ -95,7 +95,7 @@
         </ul>
         <div class="mobile-nav__cta">
             <a class="btn btn--maroon" href="{{ route('admissions') }}">Admissions</a>
-            <a class="btn btn--navy" href="{{ route('portal') }}">Portals</a>
+            <a class="btn btn--navy" href="{{ route('login') }}">Portals</a>
         </div>
     </nav>
 </header>

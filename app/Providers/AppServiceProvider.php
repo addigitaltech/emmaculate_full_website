@@ -67,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
             $cachedModel::saved(fn () => \App\Support\SiteCache::flush());
             $cachedModel::deleted(fn () => \App\Support\SiteCache::flush());
         }
-        View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*', 'site.check-result'], function ($view): void {
+        View::composer(['auth.*', 'portal.*', 'site.check-result'], function ($view): void {
             $data = $view->getData();
             $view->with([
                 'settings' => $data['settings'] ?? SchoolSettings::current(),

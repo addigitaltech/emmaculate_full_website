@@ -63,7 +63,7 @@ final class StudentCsvImporter
                 foreach ($header as $index => $name) {
                     $data[$name] = isset($row[$index]) ? trim((string) $row[$index]) : '';
                 }
-                $number = $data['student_id'] ?? ($data['student_number'] ?? '');
+                $number = $data['student_id'] ?? '';
                 if (($data['first_name'] ?? '') === '' || ($data['last_name'] ?? '') === '') {
                     $errors[] = 'Row '.$line.': first_name and last_name are required.';
                     continue;

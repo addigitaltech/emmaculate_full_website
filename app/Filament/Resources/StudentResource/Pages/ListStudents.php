@@ -24,7 +24,7 @@ class ListStudents extends ListRecords
                 ->color('gray')
                 ->visible(fn () => StudentResource::canCreate())
                 ->modalHeading('Import students from a CSV file')
-                ->modalDescription('Columns: first_name, last_name, other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status, and optionally student_id. New students get their Student ID automatically, so leave student_id blank; put an existing Student ID there only to update that student. Classes and arms must already exist. Existing students are matched on student_number and updated.')
+                ->modalDescription('Columns: first_name, last_name, other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status, and optionally student_id. New students get their Student ID automatically, so leave student_id blank; put an existing Student ID there only to update that student. Classes and arms must already exist. Existing students are matched on Student ID and updated.')
                 ->modalSubmitActionLabel('Import')
                 ->form([
                     FileUpload::make('file')

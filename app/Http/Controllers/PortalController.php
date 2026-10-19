@@ -17,14 +17,15 @@ use Illuminate\View\View;
 
 class PortalController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|\Illuminate\Http\RedirectResponse
     {
         if ($request->user()) {
             return view('portal.dashboard', $this->layoutData() + $this->dashboardData($request));
         }
-        return view('site.portal', $this->layoutData() + [
-            'portalLinks' => PortalLink::query()->publiclyVisible()->get(),
-        ]);
+
+        // Visitors go straight to the sign-in page that lists the portals which are switched on, so there is
+        // only one "which portal?" page (the old separate Portals page could show portals that were off).
+        return redirect()->route('login');
     }
 
     public function dashboard(Request $request): View
@@ -71,7 +72,7 @@ class PortalController extends Controller
             $kind = 'parent';
             $profile = $user->parentProfile()->with(['students.schoolClass', 'students.arm'])->first();
             $children = $profile?->students ?? collect();
-            $ids = $children->modelKeys();
+            $ids = $children->pluck('id')->all();
             $childTerms = $this->termsWithPublishedResults($ids);
             $results = Result::published()->whereIn('student_id', $ids)->with(['student', 'subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(50)->get();
             $fees = StudentFeeAssignment::query()->whereIn('student_id', $ids)->whereIn('status', ['unpaid', 'overdue'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();

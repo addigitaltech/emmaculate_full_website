@@ -123,7 +123,7 @@ table { border-collapse: collapse; width: 100%; }
     @endif
 
     <p class="key" style="padding:0">Grading: @foreach($bands as $band){{ $band['grade'] }} = {{ $band['min_score'] }}–{{ $band['max_score'] }}@if(! $loop->last) &middot; @endif @endforeach</p>
-    <table class="sign"><tr><td><span>Class teacher@if($classTeacherName ?? null): {{ $classTeacherName }}@endif</span></td><td><span>Principal</span></td><td><span>Parent / Guardian</span></td></tr></table>
+    <table class="sign"><tr><td><span>Class teacher{{ ($classTeacherName ?? null) ? ': '.$classTeacherName : '' }}</span></td><td><span>Principal</span></td><td><span>Parent / Guardian</span></td></tr></table>
     <p class="foot">Generated {{ now()->format('Y-m-d H:i') }} for {{ $student->fullName() }}</p>
 </div>
 @if(! $isPdf)@vite(['resources/js/app.js'])@endif

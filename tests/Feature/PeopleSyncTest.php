@@ -42,7 +42,7 @@ class PeopleSyncTest extends TestCase
     public function students_uploaded_from_a_csv_file_get_logins_too(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'students');
-        file_put_contents($path, "student_number,first_name,last_name\nC-1,Bola,Ajayi\nC-2,Chi,Eze\n");
+        file_put_contents($path, "first_name,last_name\nBola,Ajayi\nChi,Eze\n");
 
         app(StudentCsvImporter::class)->import($path);
 

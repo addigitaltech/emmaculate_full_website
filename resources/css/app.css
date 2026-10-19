@@ -121,7 +121,9 @@ img { max-width: 100%; height: auto; }
 .social .icon { width: 1rem; height: 1rem; }
 
 /* ---------- Header / navigation ---------- */
-.site-header { position: sticky; top: 0; z-index: 60; background: #fff; border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(4, 20, 51, .03); }
+.site-header { position: sticky; top: 0; z-index: 60; background: #fff; border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(4, 20, 51, .03); transition: opacity .3s ease; }
+/* On phones and tablets the menu bar fades while the page scrolls, and returns when scrolling stops or the menu is touched. */
+@media (max-width: 1079px) { .site-header.is-scrolling { opacity: .45; } }
 .site-header__inner { display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; min-height: 84px; padding-block: .6rem; }
 .brand { display: flex; align-items: center; gap: .85rem; min-width: 0; color: inherit; text-decoration: none; }
 .brand__logo { height: 66px; width: auto; flex: none; object-fit: contain; }

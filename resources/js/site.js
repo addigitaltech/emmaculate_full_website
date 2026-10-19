@@ -35,6 +35,28 @@ function initMobileNav() {
     });
 }
 
+/* ----- Mobile header fades while the page is being scrolled ----- */
+function initHeaderFade() {
+    const header = document.querySelector('.site-header');
+    if (!header || reduceMotion) return;
+    const compact = window.matchMedia('(max-width: 1079px)');
+    const menu = document.getElementById('mobile-nav');
+    let timer = null;
+
+    const clear = () => header.classList.remove('is-scrolling');
+    window.addEventListener('scroll', () => {
+        if (!compact.matches || window.scrollY < 24 || menu?.classList.contains('is-open')) {
+            clear();
+
+            return;
+        }
+        header.classList.add('is-scrolling');
+        window.clearTimeout(timer);
+        timer = window.setTimeout(clear, 700);
+    }, { passive: true });
+    header.addEventListener('touchstart', clear, { passive: true });
+}
+
 /* ----- Desktop dropdowns (hover and focus work through CSS; this adds tap/click + Escape) ----- */
 function initDropdowns() {
     const items = document.querySelectorAll('.has-dropdown');
@@ -204,6 +226,7 @@ function initSheets() {
 export function initSite() {
     initSheets();
     initMobileNav();
+    initHeaderFade();
     initDropdowns();
     initHero();
     initGallery();
