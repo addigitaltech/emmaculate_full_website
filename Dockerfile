@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         intl \
         zip \
         opcache \
-    && a2enmod rewrite headers \
+    && a2enmod rewrite headers deflate expires \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
@@ -51,6 +51,9 @@ RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --opt
     && chown -R www-data:www-data storage bootstrap/cache
 
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/php-production.ini /usr/local/etc/php/conf.d/zz-production.ini
+COPY docker/apache-performance.conf /etc/apache2/conf-available/performance.conf
+RUN a2enconf performance
 COPY --from=frontend /var/www/html/public/build /var/www/html/public/build
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN chmod +x /usr/local/bin/docker-entrypoint

@@ -18,7 +18,7 @@ class ArmResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage academic structure';
     protected static ?int $navigationSort = 4;
     protected static ?string $navigationLabel = 'Arms';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $model = Arm::class;
     protected static ?string $navigationIcon = 'heroicon-o-squares-plus';
     public static function form(Form $form): Form

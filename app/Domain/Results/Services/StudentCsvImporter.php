@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class StudentCsvImporter
 {
+    /** Students per file (empty rows left in a generated template do not count). */
     private const MAX_ROWS = 2000;
 
     /** @return array{created: int, updated: int, errors: array<int, string>} */
@@ -47,15 +48,12 @@ final class StudentCsvImporter
         $updated = 0;
         $errors = [];
         $line = 1;
+        $processed = 0;
 
         DB::beginTransaction();
         try {
             while (($row = fgetcsv($handle)) !== false) {
                 $line++;
-                if ($line - 1 > self::MAX_ROWS) {
-                    $errors[] = 'Stopped after '.self::MAX_ROWS.' rows. Split the file and import the rest separately.';
-                    break;
-                }
                 if (count(array_filter($row, fn ($cell) => trim((string) $cell) !== '')) === 0) {
                     continue;
                 }
@@ -63,7 +61,15 @@ final class StudentCsvImporter
                 foreach ($header as $index => $name) {
                     $data[$name] = isset($row[$index]) ? trim((string) $row[$index]) : '';
                 }
-                $number = $data['student_id'] ?? '';
+                $number = $data['student_id'] ?? ($data['student_number'] ?? '');
+                // A row that only carries a class and arm is an unfilled line from the generated template: skip it quietly.
+                if (($data['first_name'] ?? '') === '' && ($data['last_name'] ?? '') === '' && $number === '') {
+                    continue;
+                }
+                if (++$processed > self::MAX_ROWS) {
+                    $errors[] = 'Stopped after '.self::MAX_ROWS.' students. Split the file and import the rest separately.';
+                    break;
+                }
                 if (($data['first_name'] ?? '') === '' || ($data['last_name'] ?? '') === '') {
                     $errors[] = 'Row '.$line.': first_name and last_name are required.';
                     continue;

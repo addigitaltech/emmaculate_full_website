@@ -62,7 +62,8 @@ class PortalController extends Controller
         if ($user->hasRole('Student')) {
             $kind = 'student';
             $profile = $user->studentProfile()->with(['schoolClass', 'arm'])->first();
-            if ($profile) {
+            // Graduated students are archived: only the school administrator can open their results.
+            if ($profile && $profile->status === 'active') {
                 $reportTerms = $this->termsWithPublishedResults([$profile->id])[$profile->id] ?? collect();
                 $results = Result::published()->where('student_id', $profile->id)->with(['subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(30)->get();
                 $fees = StudentFeeAssignment::query()->where('student_id', $profile->id)->whereIn('status', ['unpaid', 'overdue'])->with('feeType')->orderBy('due_date')->get();
@@ -71,12 +72,14 @@ class PortalController extends Controller
         } elseif ($user->hasRole('Parent')) {
             $kind = 'parent';
             $profile = $user->parentProfile()->with(['students.schoolClass', 'students.arm'])->first();
-            $children = $profile?->students ?? collect();
+            $children = ($profile?->students ?? collect())->where('status', 'active')->values();
             $ids = $children->pluck('id')->all();
+            // Fees and payment history stay visible after a child graduates, so any balance can still be settled.
+            $feeIds = ($profile?->students ?? collect())->pluck('id')->all();
             $childTerms = $this->termsWithPublishedResults($ids);
             $results = Result::published()->whereIn('student_id', $ids)->with(['student', 'subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(50)->get();
-            $fees = StudentFeeAssignment::query()->whereIn('student_id', $ids)->whereIn('status', ['unpaid', 'overdue'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();
-            $payments = PaymentTransaction::query()->whereIn('student_id', $ids)->with(['student', 'feeAssignment.feeType', 'receipt'])->whereIn('status', ['successful', 'pending', 'failed'])->latest()->limit(20)->get();
+            $fees = StudentFeeAssignment::query()->whereIn('student_id', $feeIds)->whereIn('status', ['unpaid', 'overdue'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();
+            $payments = PaymentTransaction::query()->whereIn('student_id', $feeIds)->with(['student', 'feeAssignment.feeType', 'receipt'])->whereIn('status', ['successful', 'pending', 'failed'])->latest()->limit(20)->get();
         } elseif ($user->hasRole('Teacher')) {
             $kind = 'teacher';
             $profile = $user->teacherProfile()->first();

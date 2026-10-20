@@ -111,6 +111,13 @@ final class PromotionService
                     $reviewReason = $this->thresholdReason($analysis, $settings);
                 } elseif (! $mapping['valid']) {
                     $reviewReason = $mapping['reason'];
+                } elseif ($mapping['graduate'] ?? false) {
+                    // Graduates leave the active register: they can no longer sign in or check results, and are kept in the archive.
+                    $student->forceFill(['status' => 'graduated', 'graduated_at' => now()])->save();
+                    $decisionStatus = 'graduated';
+                    $reviewReason = null;
+                    $decidedBy = $actor->id;
+                    $decidedAt = now();
                 } else {
                     $student->forceFill(['school_class_id' => $destinationClassId, 'arm_id' => $destinationArmId])->save();
                     $decisionStatus = 'promoted';
@@ -166,6 +173,7 @@ final class PromotionService
             'decision_mode' => $mode,
             'students_considered' => $records->count(),
             'promoted' => $records->filter(fn (StudentPromotion $record): bool => $record->wasRecentlyCreated && $record->decision_status === 'promoted')->count(),
+            'graduated' => $records->filter(fn (StudentPromotion $record): bool => $record->wasRecentlyCreated && $record->decision_status === 'graduated')->count(),
             'review' => $records->filter(fn (StudentPromotion $record): bool => $record->wasRecentlyCreated && $record->decision_status === 'review')->count(),
             'already_processed' => $records->filter(fn (StudentPromotion $record): bool => ! $record->wasRecentlyCreated)->count(),
         ]);
@@ -181,8 +189,8 @@ final class PromotionService
         ?int $destinationArmId = null,
     ): StudentPromotion {
         $this->assertSchoolAdministrator($actor);
-        if (! in_array($decision, ['promote', 'retain'], true)) {
-            throw ValidationException::withMessages(['decision' => 'Choose Promote or Retain.']);
+        if (! in_array($decision, ['promote', 'retain', 'graduate'], true)) {
+            throw ValidationException::withMessages(['decision' => 'Choose Promote, Retain or Graduate.']);
         }
 
         return DB::transaction(function () use ($promotion, $actor, $decision, $destinationClassId, $destinationArmId): StudentPromotion {
@@ -192,7 +200,13 @@ final class PromotionService
             }
 
             $student = Student::query()->whereKey($record->student_id)->lockForUpdate()->firstOrFail();
-            if ($decision === 'promote') {
+            if ($decision === 'graduate') {
+                if (! SchoolClass::query()->whereKey($record->source_class_id)->value('is_graduating')) {
+                    throw ValidationException::withMessages(['decision' => 'Only students of a final (graduating) class can be graduated. Mark the class as a final class first.']);
+                }
+                $student->forceFill(['status' => 'graduated', 'graduated_at' => now()])->save();
+                $record->fill(['decision_status' => 'graduated', 'destination_class_id' => null, 'destination_arm_id' => null]);
+            } elseif ($decision === 'promote') {
                 if (! $destinationClassId) {
                     throw ValidationException::withMessages(['destination_class_id' => 'Choose a destination class.']);
                 }
@@ -325,6 +339,10 @@ final class PromotionService
     private function nextAssignment(?int $sourceClassId, ?int $sourceArmId): array
     {
         $sourceClass = $sourceClassId ? SchoolClass::query()->with('nextClass')->find($sourceClassId) : null;
+        // The final class (e.g. SS3) has no next class: eligible students graduate and are archived.
+        if ($sourceClass?->is_graduating) {
+            return ['valid' => true, 'graduate' => true, 'class_id' => null, 'arm_id' => null, 'reason' => null];
+        }
         $destinationClass = $sourceClass?->nextClass;
         if (! $destinationClass || ! $destinationClass->is_active) {
             return ['valid' => false, 'class_id' => null, 'arm_id' => null, 'reason' => 'No active next class is configured for the source class.'];

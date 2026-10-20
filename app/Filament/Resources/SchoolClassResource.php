@@ -14,7 +14,7 @@ class SchoolClassResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage academic structure';
     protected static ?int $navigationSort = 3;
     protected static ?string $navigationLabel = 'Classes';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $model = SchoolClass::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-library';
     public static function form(Form $form): Form
@@ -27,6 +27,8 @@ class SchoolClassResource extends AuthorizedResource
                     ->when($record?->exists, fn ($query) => $query->whereKeyNot($record->id))
                     ->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()->placeholder('No automatic path; flagged for review'),
+            Forms\Components\Toggle::make('is_graduating')->label('Final class (students graduate after this class)')
+                ->helperText('Switch on for the last class, e.g. SS3. When the session is processed, eligible students graduate, move to the archive and can no longer sign in or check results. Only the school administrator can open their results afterwards.'),
             Forms\Components\Toggle::make('is_active')->default(true)->required(),
             Forms\Components\Select::make('arms')->relationship('arms', 'name')->multiple()->searchable()->preload()->columnSpanFull(),
         ])->columns(2);

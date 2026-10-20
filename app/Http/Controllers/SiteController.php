@@ -139,7 +139,7 @@ class SiteController extends Controller
         return $this->render('site.academics', [
             'programmes' => AcademicProgramme::query()->where('is_published', true)->with('image')->orderBy('sort_order')->get(),
             'heroImage' => $this->heroUrl('academics'),
-            'seoDescription' => 'Explore Primary and Secondary education at Emmaculate Academy.',
+            'seoDescription' => 'Explore the academic programmes at '.\App\Models\SchoolSettings::current()->school_name.'.',
         ]);
     }
 
@@ -173,7 +173,7 @@ class SiteController extends Controller
             'levelMedia' => $levelMedia,
             'faqs' => Faq::query()->where('is_visible', true)->orderBy('sort_order')->limit(4)->get(),
             'heroImage' => $this->heroUrl('admissions', $admissions->image),
-            'seoDescription' => 'Admission information for Emmaculate Academy. Contact the school for current availability.',
+            'seoDescription' => 'Admission information for '.\App\Models\SchoolSettings::current()->school_name.'. Contact the school for current availability.',
         ]);
     }
 
@@ -192,7 +192,7 @@ class SiteController extends Controller
             'events' => SchoolEvent::published()->upcoming()->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get(),
             'highlights' => $this->galleryPhotos(2),
             'heroImage' => $this->heroUrl('news'),
-            'seoDescription' => 'Published news and updates from Emmaculate Academy.',
+            'seoDescription' => 'Published news and updates from '.\App\Models\SchoolSettings::current()->school_name.'.',
         ]);
     }
 
@@ -270,7 +270,7 @@ class SiteController extends Controller
 
         return $this->render('site.gallery', $built + [
             'heroImage' => $this->heroUrl('gallery'),
-            'seoDescription' => 'Photographs from the Emmaculate Academy community.',
+            'seoDescription' => 'Photographs from the '.\App\Models\SchoolSettings::current()->school_name.' community.',
         ]);
     }
 
@@ -287,7 +287,7 @@ class SiteController extends Controller
         return $this->render('site.contact', [
             'heroImage' => $this->heroUrl('contact'),
             'prefillSubject' => Str::limit(trim(strip_tags((string) $request->query('subject', ''))), 160, ''),
-            'seoDescription' => 'Contact Emmaculate Academy in Arigidi Akoko, Ondo State.',
+            'seoDescription' => 'Contact '.\App\Models\SchoolSettings::current()->school_name.'. '.(\App\Models\SchoolSettings::current()->address ?: ''),
         ]);
     }
 

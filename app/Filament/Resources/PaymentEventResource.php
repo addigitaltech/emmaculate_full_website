@@ -17,9 +17,9 @@ class PaymentEventResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage payments';
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?int $navigationSort = 94;
+    protected static ?int $navigationSort = 6;
     protected static ?string $navigationLabel = 'Payment events';
-    protected static ?string $navigationGroup = 'Fees & payments';
+    protected static ?string $navigationGroup = 'Advanced';
     protected static bool $readOnly = true;
     protected static ?string $model = PaymentEvent::class;
     protected static ?string $navigationIcon = 'heroicon-o-bolt';

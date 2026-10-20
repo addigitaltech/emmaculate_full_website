@@ -26,7 +26,7 @@ class StudentResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage students';
     protected static ?int $navigationSort = 1;
     protected static ?string $navigationLabel = 'Students';
-    protected static ?string $navigationGroup = 'People';
+    protected static ?string $navigationGroup = 'Students & staff';
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     public static function form(Form $form): Form
@@ -111,6 +111,23 @@ class StudentResource extends AuthorizedResource
                 ->visible(fn () => (bool) auth()->user()?->can('manage students')),
             Tables\Actions\EditAction::make(),
         ])->bulkActions([
+            Tables\Actions\BulkAction::make('graduate')->label('Graduate and archive')->icon('heroicon-o-academic-cap')->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Graduate the selected students')
+                ->modalDescription('They move to the archive (People > Graduated students), can no longer sign in or check results, and only administrators can open their results. This is normally done automatically when the session is processed; use this for students who left outside that process.')
+                ->deselectRecordsAfterCompletion()
+                ->action(function (Collection $records): void {
+                    $count = 0;
+                    foreach ($records as $student) {
+                        if ($student->status !== 'graduated') {
+                            $student->forceFill(['status' => 'graduated', 'graduated_at' => now()])->save();
+                            $count++;
+                        }
+                    }
+                    \App\Models\AuditLog::record(auth()->user(), 'students.graduated_manually', null, ['count' => $count]);
+                    Notification::make()->success()->title($count.' student(s) moved to the archive')->send();
+                })
+                ->visible(fn () => (bool) auth()->user()?->can('manage students')),
             Tables\Actions\BulkAction::make('issuePins')->label('Issue PIN slips')->icon('heroicon-o-key')->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Issue PINs for the selected students')
@@ -133,6 +150,12 @@ class StudentResource extends AuthorizedResource
         }
 
         return app(PinSlipService::class)->download($students);
+    }
+
+    /** Graduated students live in the archive (People > Graduated students), not in the active list. */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->where('status', '!=', 'graduated');
     }
 
     public static function getRelations(): array { return []; }

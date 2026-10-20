@@ -12,9 +12,9 @@ use Filament\Tables\Table;
 class UserResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage users and roles';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 8;
     protected static ?string $navigationLabel = 'Users & logins';
-    protected static ?string $navigationGroup = 'People';
+    protected static ?string $navigationGroup = 'Students & staff';
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-key';
     public static function form(Form $form): Form

@@ -18,7 +18,7 @@ class AcademicTermResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage academic structure';
     protected static ?int $navigationSort = 2;
     protected static ?string $navigationLabel = 'Terms';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $model = AcademicTerm::class;
     protected static ?string $navigationIcon = 'heroicon-o-clock';
     public static function form(Form $form): Form

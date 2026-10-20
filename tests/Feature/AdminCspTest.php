@@ -21,7 +21,7 @@ class AdminCspTest extends TestCase
         $workerDirective = $directives->first(fn (string $directive): bool => str_starts_with($directive, 'worker-src '));
 
         $this->assertSame("worker-src 'self'", $workerDirective);
-        $this->assertStringContainsString("script-src 'self';", $policy);
+        $this->assertStringContainsString("script-src 'self' https://challenges.cloudflare.com;", $policy);
         $this->assertStringNotContainsString("'unsafe-eval'", $policy);
         $this->assertStringNotContainsString("'nonce-", $policy);
     }

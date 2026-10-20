@@ -1,55 +1,62 @@
-# Emmaculate Academy — Unified School Platform
+# School Website and Results Portal
 
-A single Laravel 12 application combining the inspected Emmaculate Academy public website, editable CMS, school administration, student/parent/teacher portals, academic results and fee-payment adapters. Public copy, visual identity and imported school photographs were sourced from the inspected website repository; result behavior was mapped from the inspected results portal. The original repositories remain unchanged.
+One Laravel 12 application for a school: public website (editable from the admin area), admission applications, student, parent and teacher portals, results with printable A4 report cards, student PIN checking, fee payments, and an archive of graduated students. Every school-specific detail (name, logo, contacts, Student ID prefix, grading, portals) is edited in the admin area, so the same code can run for any school.
+
+## Where can it run?
+
+| Platform | Works | Notes |
+|---|---|---|
+| **cPanel / shared hosting** | Yes (the production route) | PHP 8.3, MySQL/MariaDB. Use the ready-built release ZIP. Guide: [docs/CPANEL_DEPLOYMENT.md](docs/CPANEL_DEPLOYMENT.md) |
+| **XAMPP, WAMP, MAMP, Laragon (own computer)** | Yes | Needs **PHP 8.3+** (older XAMPP builds with PHP 8.2 will not work). Guide: [docs/INSTALL_XAMPP.md](docs/INSTALL_XAMPP.md) |
+| **Render, Railway or any Docker host** | Yes | `Dockerfile` included (PHP 8.3 + Apache, PostgreSQL or MySQL). |
+| **VPS (Ubuntu + Nginx/Apache)** | Yes | Standard Laravel deployment; point the web root at `public/`. |
+| Windows / macOS / Linux | Yes | Any system that runs PHP 8.3, Composer and Node. |
+
+Databases: **MySQL 5.7+ / MariaDB 10.3+**, **PostgreSQL 14+** and **SQLite** (tests only). The test suite runs on all three in GitHub Actions on every push.
 
 ## Requirements
+- PHP **8.3+** with: `ctype, curl, dom, fileinfo, filter, gd, intl, mbstring, openssl, pdo_mysql (or pdo_pgsql), tokenizer, xml, zip, bcmath, exif`
+- Composer 2 and Node.js 20+ (only to *build*; on cPanel you upload a ready-built ZIP instead)
+- HTTPS in production, a working mail service (for "Forgot password"), and durable file storage for uploads (cPanel disks are durable; Render's free plan is not)
 
-- PHP 8.3+ with the Laravel-required extensions (`ctype`, `curl`, `dom`, `fileinfo`, `filter`, `mbstring`, `openssl`, `PDO`, `pdo_pgsql`, `tokenizer`, and `xml`).
-- Composer 2, Node.js 20+ with npm, and PostgreSQL 14+.
-- A production HTTPS hostname, a durable/shared filesystem or object store for uploaded media, and a configured mail provider for password-reset delivery.
-
-## Install and run
-
+## Quick start (any computer)
 ```bash
-cp .env.example .env
-# Set APP_URL and DB_* in .env for your PostgreSQL database.
+cp .env.example .env          # then set APP_URL and the DB_* lines (see the platform guides)
 composer install
 php artisan key:generate
 php artisan migrate --seed
 php artisan storage:link
-npm ci
-npm run build
+npm ci && npm run build
 php artisan school:create-super-admin
-php artisan serve --host=127.0.0.1 --port=8000
+php artisan serve             # http://127.0.0.1:8000 (website), /admin (admin area)
 ```
+Step-by-step for XAMPP: [docs/INSTALL_XAMPP.md](docs/INSTALL_XAMPP.md). For cPanel: [docs/CPANEL_DEPLOYMENT.md](docs/CPANEL_DEPLOYMENT.md) (you can build the upload ZIP from GitHub: **Actions > Build cPanel release > Run workflow**).
 
-Open `/` for the public website, `/portal` for the CMS-managed portal launch cards, `/login` for the role-based school portal, and `/admin` for the authorized Filament administration panel. Portal cards set to **Live** link to their safe configured destination; **Coming Soon** cards are visible but non-clickable; **Hidden** cards are not shown publicly. Manage these under **Admin → Website → Portal links**. The bootstrap command prompts for one initial Super Admin name, email and hidden password. It refuses to create a second Super Admin. The project deliberately contains no default login, demo student accounts or real credentials. Configure mail before relying on password-reset emails.
+## Main features
+- **Student ID** made automatically (e.g. `EAC/2627/0001`: school prefix / short session / running number). The prefix is set in School settings.
+- **Results**: enter by student or subject, class teacher remarks and ratings, publish per class, positions and cumulative results, A4 portrait report cards (print or PDF).
+- **Checking results**: students/parents sign in with Student ID, surname and an optional PIN; the public Check Result page lets people choose the session and term. PIN use is a switch in Portal settings.
+- **PIN slips** printed in bulk for a class or the whole school.
+- **Promotion and graduation**: move classes up each session; the final class (e.g. SS3) graduates into an archive that only administrators can open.
+- **Fees and payments**: Paystack and Flutterwave, verified with the provider before anything is marked paid; receipts; optional "hold results until fees are paid".
+- **Security**: Cloudflare Turnstile on every sign-in (optional, free), strict security headers, per-student lockouts, strong passwords, activity log. See [docs/SECURITY.md](docs/SECURITY.md).
+- **Simple admin menu** with "Start here" buttons. See [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md).
 
-The database seed creates the role/permission taxonomy, verified public school copy, supplied images and source-mapped grading defaults. It does not create students, teachers, parents, grades, fee obligations, a production contact channel or fictional news/events. Add real school records through the authorized administration panel after deployment.
+## Roles
+`Super Admin`, `Website Admin`, `Content Editor`, `Results Admin`, `Finance Admin`, `Teacher`, `Student` and `Parent`. Permissions are enforced on the server, not only hidden in the menu. A teacher can enter scores only for their own class and subject; behaviour ratings and the class teacher's remark belong to the arm's class teacher.
 
 ## Tests and assets
-
 ```bash
-composer validate --no-check-publish
-php artisan test
+php artisan test            # runs on an in-memory SQLite database
 npm run build
-php artisan route:list --except-vendor
 ```
+GitHub Actions (`.github/workflows/tests.yml`) runs the suite on SQLite, MySQL and PostgreSQL for every push.
 
-The test suite uses an isolated SQLite in-memory database and does not contact live payment services. Vite bundles Tailwind and the CSP-compatible Alpine runtime. Run `npm ci` before the first production asset build.
+## Payments
+Keep gateway keys only in the deployment environment (`.env` or the host's variables), never in the database, source or screenshots. A payment return page is not proof of payment: the server confirms amount, currency and reference with the provider, and webhooks are signature-checked and idempotent. Set the webhook URLs in each provider dashboard to `https://YOUR-DOMAIN/api/webhooks/payments/paystack` and `.../flutterwave`.
 
-## Roles and data boundaries
+## Going live checklist
+`APP_ENV=production`, `APP_DEBUG=false`, real `APP_URL` (https), strong unique `APP_KEY`, mail configured, Turnstile keys set, demo content removed, backups scheduled, Cloudflare in front. Details: [docs/PERFORMANCE.md](docs/PERFORMANCE.md) and [docs/SECURITY.md](docs/SECURITY.md).
 
-`Super Admin`, `Website Admin`, `Content Editor`, `Results Admin`, `Finance Admin`, `Teacher`, `Student`, and `Parent` roles are seeded. The public application has no open registration. Administrators create accounts, assign one or more roles, link them to school profiles, and explicitly link each parent to their children. Students and parents see only published/linked records; teachers can enter only results for their assigned class/arm/subject; sensitive changes are audited. Result totals, grades, rankings and payment success are calculated or verified server-side. Result access is not payment-gated by default.
-
-## Payment configuration and limits
-
-Gateway credentials belong only in deployment environment variables; never put them in source, the database CMS, browser code, screenshots, or logs. Configure provider test credentials first, then configure the provider webhook URL as `https://your-domain.example/api/webhooks/payments/paystack` or `/api/webhooks/payments/flutterwave`, and test signature verification, amount/reference matching, idempotency and receipts before considering any live activation. `PAYSTACK_SECRET_KEY` is server-side. Flutterwave needs `FLUTTERWAVE_SECRET_KEY` and the provider-configured `FLUTTERWAVE_SECRET_HASH` for checkout/webhook support. Provider enablement is a separate school-admin setting and is off by default. No merchant credentials or entitlement were supplied, so no real transaction was initiated or tested.
-
-The payment return URL is not proof of payment. The service confirms amount, currency and reference through the provider API before settling a fee and issuing a receipt. Paystack refund requests remain pending until a signed refund lifecycle event confirms processing; only the documented `refund.processed` state marks a payment reversed. Flutterwave's API response may represent an initiated refund still awaiting disbursement, and its refund webhooks are not enabled by default. Until the school obtains that webhook entitlement or an operator reconciles the provider dashboard, the application records the request as accepted and does not claim the customer's funds were returned. Ambiguous refund requests are not automatically retried. The inspected Moniepoint documentation describes POS capabilities, not a confirmed hosted online checkout; Moniepoint is therefore unavailable for online checkout.
-
-## Production operations
-
-Before publishing: set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://...`, use a strong unique `APP_KEY`, force HTTPS and secure session cookies at the trusted reverse proxy, restrict allowed origins to the application's own host, and use database credentials limited to this application. Never use SQLite-in-memory for production. Set durable object storage for media (or a persistent shared `public` disk), restrict and back up database and media separately, and test restoration. Configure an actual mail transport, monitor Laravel/provider logs without logging secrets or raw payment payloads, and retain HTTPS availability for provider webhooks. Use the deployment's secret manager for payment secrets and rotate them through the provider's approved process.
-
-The ZIP excludes `.env`, credentials, `vendor/`, `node_modules/`, build caches and temporary files. Read [the source feature/architecture map](docs/architecture/source-feature-map.md) and [verified payment-provider notes](docs/architecture/payment-provider-notes.md) before adapting unconfirmed school facts or enabling integrations.
+## More documents
+`docs/ADMIN_GUIDE.md` (where to change things), `docs/EMAIL_SETUP.md`, `docs/TRAFFIC_PLAN_CPANEL.md`, `docs/CBT_INTEGRATION_PLAN.md` (connecting a CBT/exam website), `docs/CHANGES_UPDATE_*.md` (what each update changed).

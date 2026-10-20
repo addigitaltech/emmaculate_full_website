@@ -18,7 +18,7 @@ class AcademicSessionResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage academic structure';
     protected static ?int $navigationSort = 1;
     protected static ?string $navigationLabel = 'Sessions';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $model = AcademicSession::class;
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     public static function form(Form $form): Form

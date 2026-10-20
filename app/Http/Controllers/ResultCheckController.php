@@ -6,6 +6,7 @@ use App\Domain\Auth\Support\PortalAccess;
 use App\Domain\Results\Services\StudentLookup;
 use App\Domain\Results\Services\StudentPinService;
 use App\Domain\Results\Services\TermReportBuilder;
+use App\Models\AcademicSession;
 use App\Models\AcademicTerm;
 use App\Models\AuditLog;
 use App\Models\Result;
@@ -19,7 +20,8 @@ use Illuminate\View\View;
 
 /**
  * Public "check my result" page for when student and parent portals are switched off.
- * Student ID + surname (+ PIN when the system setting is on), current published term only, read-only, links expire after 20 minutes.
+ * Student ID + surname (+ PIN when the system setting is on) + the session and term to look at (the current term by default),
+ * published results only, read-only, links expire after 20 minutes.
  */
 class ResultCheckController extends Controller
 {
@@ -37,6 +39,9 @@ class ResultCheckController extends Controller
         $data = $request->validate([
             'student_id' => ['required', 'string', 'max:60'],
             'surname' => ['required', 'string', 'max:80'],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()],
+            'academic_session_id' => ['nullable', 'integer'],
+            'academic_term_id' => ['nullable', 'integer'],
         ] + ($pinRequired ? ['pin' => ['required', 'string', 'regex:/^\s*\d{6}\s*$/']] : []), ['pin.regex' => 'Enter the 6-digit PIN from your PIN slip.']);
 
         $key = 'result-check:'.hash('sha256', StudentLookup::normaliseNumber($data['student_id']).'|'.$request->ip());
@@ -65,11 +70,13 @@ class ResultCheckController extends Controller
             return back()->withErrors(['student_id' => self::GENERIC_ERROR])->onlyInput('student_id');
         }
 
-        $term = AcademicTerm::query()
-            ->with('session')
-            ->where('is_current', true)
-            ->whereHas('session', fn ($query) => $query->where('is_active', true))
-            ->first();
+        // The visitor chooses a session and term; without a choice the current term is used.
+        $term = ! empty($data['academic_term_id'])
+            ? AcademicTerm::query()->with('session')
+                ->whereKey((int) $data['academic_term_id'])
+                ->when(! empty($data['academic_session_id']), fn ($query) => $query->where('academic_session_id', (int) $data['academic_session_id']))
+                ->first()
+            : AcademicTerm::query()->with('session')->where('is_current', true)->whereHas('session', fn ($query) => $query->where('is_active', true))->first();
         if (! $term || ! Result::published()->where('student_id', $student->id)->where('academic_term_id', $term->id)->exists()) {
             return back()->withErrors(['student_id' => self::GENERIC_ERROR])->onlyInput('student_id');
         }
@@ -91,7 +98,6 @@ class ResultCheckController extends Controller
     {
         abort_unless(PortalAccess::checkerEnabled(), 404);
         abort_unless($student->status === 'active', 404);
-        abort_unless($term->is_current && $term->session()->where('is_active', true)->exists(), 404);
         abort_unless(Result::published()->where('student_id', $student->id)->where('academic_term_id', $term->id)->exists(), 404);
         abort_if(PortalAccess::feesBlockResults($student), 403);
 
@@ -110,6 +116,18 @@ class ResultCheckController extends Controller
 
     private function page(array $data): View
     {
-        return view('site.check-result', $data + ['heroImage' => asset('storage/migrated-images/students-group.jpg')]);
+        // Sessions and terms offered in the drop-downs: only those that have published results.
+        $termIds = Result::published()->select('academic_term_id')->distinct()->pluck('academic_term_id');
+        $sessions = AcademicSession::query()
+            ->with(['terms' => fn ($query) => $query->whereIn('id', $termIds)->orderBy('sequence')])
+            ->whereHas('terms', fn ($query) => $query->whereIn('id', $termIds))
+            ->orderByDesc('id')->get();
+        $currentTerm = AcademicTerm::query()->where('is_current', true)->whereHas('session', fn ($query) => $query->where('is_active', true))->first();
+
+        return view('site.check-result', $data + [
+            'sessions' => $sessions,
+            'currentTerm' => $currentTerm,
+            'heroImage' => asset('storage/migrated-images/students-group.jpg'),
+        ]);
     }
 }

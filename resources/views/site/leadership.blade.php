@@ -2,7 +2,7 @@
 @section('title', 'Leadership | '.$settings->short_name)
 @section('description', 'Meet the leadership team of '.$settings->school_name.'.')
 @section('content')
-<x-page-hero title="School Leadership" lead="The people serving the Emmaculate Academy community." :image="$heroImage" :crumbs="[['Home', route('home')], ['About Us', route('about')], ['Leadership', null]]" />
+<x-page-hero title="School Leadership" :lead="'The people serving the '.$settings->school_name.' community.'" :image="$heroImage" :crumbs="[['Home', route('home')], ['About Us', route('about')], ['Leadership', null]]" />
 <section class="section"><div class="site-container">
     @if($leaders->isEmpty())
         <p class="empty-state">Leadership profiles will be added here.</p>

@@ -9,7 +9,7 @@
 ## What decides the real ceiling: the hosting plan
 Shared cPanel plans cap how many PHP requests run at once (often 20-50) and how much CPU you may use. With the caching above, a good shared/LiteSpeed plan can serve hundreds of people browsing at once. "Thousands at the same moment" on results day needs more headroom:
 1. Prefer LiteSpeed + PHP 8.3 with OPcache on (cPanel > MultiPHP INI Editor: opcache.enable=1, memory_limit=256M).
-2. Put **Cloudflare (free)** in front: it serves images/CSS/JS from its own servers (most of the bytes), blocks attacks and bots, and adds the "are you a robot" check (Turnstile).
+2. Put **Cloudflare (free)** in front: it serves images/CSS/JS from its own servers (most of the bytes), blocks attacks and bots, and adds the "are you a robot" check (Turnstile; setup in docs/SECURITY.md).
    - Cache rule: cache `/build/*`, `/storage/*`, and image files.
    - Bypass cache: `/admin*`, `/portal*`, `/login`, `/student-login`, `/check-result*`, `/contact`.
 3. If load tests (below) show the plan struggling, move to a cPanel **VPS** (4 vCPU / 8 GB RAM) or managed cloud. The same release zip runs there.

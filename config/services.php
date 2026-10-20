@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    // Cloudflare Turnstile (sign-in protection). Leave both empty to switch it off.
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
     'paystack' => [
         'secret_key' => env('PAYSTACK_SECRET_KEY'),
         'base_url' => env('PAYSTACK_BASE_URL', 'https://api.paystack.co'),

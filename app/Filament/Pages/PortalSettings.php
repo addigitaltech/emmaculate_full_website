@@ -17,9 +17,9 @@ class PortalSettings extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?string $navigationLabel = 'Portal & website switches';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
     protected static ?string $title = 'Portal & website switches';
     protected static string $view = 'filament.pages.simple-form';
 

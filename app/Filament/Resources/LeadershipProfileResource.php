@@ -16,10 +16,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class LeadershipProfileResource extends AuthorizedResource
 {
-    protected static ?string $navigationGroup = 'School profile';
+    protected static ?string $navigationGroup = 'Website';
     protected static ?string $navigationLabel = 'School leadership';
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 7;
     protected static ?string $requiredPermission = 'manage website content';
     protected static ?string $model = LeadershipProfile::class;
 

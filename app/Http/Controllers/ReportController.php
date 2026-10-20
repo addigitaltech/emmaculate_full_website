@@ -30,6 +30,8 @@ class ReportController extends Controller
             } else {
                 abort(403, 'Teachers can access results only through their assigned subject sheets.');
             }
+            // Graduated students are archived; their results are kept by the school and opened by the administrator.
+            abort_unless($student->status === 'active', 403, 'This student has graduated. Past results are kept in the school archive; please contact the school office.');
             // Families only ever see published results.
             abort_unless(Result::published()->where('student_id', $student->id)->where('academic_term_id', $term->id)->exists(), 404);
             if (SchoolSettings::current()->payment_gate_results

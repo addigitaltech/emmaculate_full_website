@@ -13,9 +13,9 @@ class SchoolSettingsResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage school settings';
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?int $navigationSort = 99;
-    protected static ?string $navigationLabel = 'Old settings';
-    protected static ?string $navigationGroup = 'System';
+    protected static ?int $navigationSort = 7;
+    protected static ?string $navigationLabel = 'All school settings (advanced)';
+    protected static ?string $navigationGroup = 'Advanced';
     protected static bool $singleton = true;
     protected static ?string $model = SchoolSettings::class;
     protected static ?string $navigationIcon = 'heroicon-o-cog';

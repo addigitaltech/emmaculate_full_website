@@ -35,6 +35,27 @@ function initMobileNav() {
     });
 }
 
+/* ----- Result checker: the Term list only shows terms of the chosen Session ----- */
+function initTermFilter() {
+    const session = document.querySelector('[data-term-filter-source]');
+    const term = document.querySelector('[data-term-filter-target]');
+    if (!session || !term) return;
+
+    const apply = () => {
+        let firstVisible = null;
+        term.querySelectorAll('option').forEach((option) => {
+            const show = option.dataset.session === session.value;
+            option.hidden = !show;
+            option.disabled = !show;
+            if (show && !firstVisible) firstVisible = option;
+        });
+        const selected = term.selectedOptions[0];
+        if ((!selected || selected.disabled) && firstVisible) term.value = firstVisible.value;
+    };
+    session.addEventListener('change', apply);
+    apply();
+}
+
 /* ----- Mobile header fades while the page is being scrolled ----- */
 function initHeaderFade() {
     const header = document.querySelector('.site-header');
@@ -227,6 +248,7 @@ export function initSite() {
     initSheets();
     initMobileNav();
     initHeaderFade();
+    initTermFilter();
     initDropdowns();
     initHero();
     initGallery();

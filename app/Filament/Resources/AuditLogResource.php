@@ -16,9 +16,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class AuditLogResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'view audit logs';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
     protected static ?string $navigationLabel = 'Activity log';
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'Settings';
     protected static bool $readOnly = true;
     protected static ?string $model = AuditLog::class;
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';

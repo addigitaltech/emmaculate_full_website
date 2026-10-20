@@ -20,7 +20,7 @@ class TeacherAssignmentResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage teachers';
     protected static ?int $navigationSort = 6;
     protected static ?string $navigationLabel = 'Who teaches what';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $model = TeacherAssignment::class;
     protected static ?string $navigationIcon = 'heroicon-o-link';
     public static function form(Form $form): Form

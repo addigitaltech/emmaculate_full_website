@@ -24,7 +24,7 @@ class ListStudents extends ListRecords
                 ->color('gray')
                 ->visible(fn () => StudentResource::canCreate())
                 ->modalHeading('Import students from a CSV file')
-                ->modalDescription('Columns: first_name, last_name, other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status, and optionally student_id. New students get their Student ID automatically, so leave student_id blank; put an existing Student ID there only to update that student. Classes and arms must already exist. Existing students are matched on Student ID and updated.')
+                ->modalDescription('Columns: first_name, last_name, other_names, gender, date_of_birth (YYYY-MM-DD or DD/MM/YYYY), class, arm, status, and optionally student_id. New students get their Student ID automatically, so leave student_id blank; put an existing Student ID there only to update that student. Classes and arms must already exist. Existing students are matched on student_number and updated.')
                 ->modalSubmitActionLabel('Import')
                 ->form([
                     FileUpload::make('file')
@@ -54,6 +54,33 @@ class ListStudents extends ListRecords
                     }
                     $notice = Notification::make()->title('Student import finished')->body($body);
                     ($result['errors'] === [] ? $notice->success() : $notice->warning())->persistent()->send();
+                }),
+            Actions\Action::make('downloadTemplate')
+                ->label('Download upload sheet')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->visible(fn () => StudentResource::canCreate())
+                ->modalHeading('Make an upload sheet for the whole school')
+                ->modalDescription('Creates a spreadsheet with empty lines for every class and arm, class and arm already filled in. Open it in Excel or Google Sheets, type each student\'s names, save as CSV and use Import from CSV. Empty lines are ignored and Student IDs are created for you.')
+                ->modalSubmitActionLabel('Download')
+                ->form([
+                    \Filament\Forms\Components\Select::make('classes')->label('Classes to include (leave empty for all)')->multiple()->searchable()
+                        ->options(fn () => \App\Models\SchoolClass::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')),
+                    \Filament\Forms\Components\TextInput::make('lines_per_arm')->label('Empty lines per arm')->numeric()->minValue(1)->maxValue(200)->default(40)->required()
+                        ->helperText('Roughly the largest number of students you expect in one arm. Up to 2,000 lines per file.'),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $csv = app(\App\Domain\Results\Services\StudentTemplateGenerator::class)->csv($data['classes'] ?: null, (int) $data['lines_per_arm']);
+                    } catch (ValidationException $exception) {
+                        Notification::make()->danger()->title('Could not make the sheet')->body(collect($exception->errors())->flatten()->implode(' '))->persistent()->send();
+
+                        return null;
+                    }
+
+                    return response()->streamDownload(function () use ($csv): void {
+                        echo $csv;
+                    }, 'student-upload-sheet-'.now()->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
                 }),
             Actions\Action::make('printPinSlips')->label('Print PIN slips')->icon('heroicon-o-printer')->color('gray')
                 ->url(fn () => \App\Filament\Pages\StudentPinSlips::getUrl())

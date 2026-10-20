@@ -19,7 +19,7 @@ class SchoolProfile extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
-    protected static ?string $navigationGroup = 'School profile';
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?string $navigationLabel = 'School profile';
     protected static ?int $navigationSort = 1;
     protected static ?string $title = 'School profile';

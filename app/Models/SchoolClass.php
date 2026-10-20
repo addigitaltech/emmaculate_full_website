@@ -8,11 +8,16 @@ use Illuminate\Validation\ValidationException;
 class SchoolClass extends Model
 {
     protected $table = 'school_classes';
-    protected $fillable = ['name', 'level', 'is_active', 'next_class_id'];
+    protected $fillable = ['name', 'level', 'is_active', 'next_class_id', 'is_graduating'];
 
     protected static function booted(): void
     {
         static::saving(function (self $schoolClass): void {
+            // A final class has nowhere to be promoted to: its students graduate.
+            if ($schoolClass->is_graduating) {
+                $schoolClass->next_class_id = null;
+            }
+
             if ($schoolClass->next_class_id && (int) $schoolClass->next_class_id === (int) $schoolClass->id) {
                 throw ValidationException::withMessages(['next_class_id' => 'A class cannot be configured as its own next class.']);
             }
@@ -33,7 +38,7 @@ class SchoolClass extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'is_graduating' => 'boolean'];
     }
 
     public function arms()
