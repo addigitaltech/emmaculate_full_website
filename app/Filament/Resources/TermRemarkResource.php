@@ -17,9 +17,9 @@ class TermRemarkResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?int $navigationSort = 92;
-    protected static ?string $navigationLabel = 'Remarks';
-    protected static ?string $navigationGroup = 'Results';
+    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'Remarks (raw records)';
+    protected static ?string $navigationGroup = 'Advanced';
     protected static ?string $model = TermRemark::class;
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
     public static function form(Form $form): Form

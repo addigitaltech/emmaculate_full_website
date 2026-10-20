@@ -1,0 +1,35 @@
+name: Build cPanel release
+
+# Makes the ready-to-upload ZIP for cPanel hosting (all PHP packages and the built CSS/JS included), so nothing
+# has to be built on a computer or on the server.
+# How to use it: GitHub > Actions > "Build cPanel release" > Run workflow, then download the ZIP from the run page.
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, bcmath, exif, fileinfo, dom, xml, curl, pdo_mysql, pdo_pgsql, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Build the release ZIP
+        run: bash deploy/build-cpanel-release.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpanel-release
+          path: release-*.zip
+          retention-days: 14

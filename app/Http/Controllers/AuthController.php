@@ -37,7 +37,11 @@ class AuthController extends Controller
         if ($portal !== null && ! PortalAccess::enabled((string) $portal)) {
             return redirect()->route('login.'.$portal);
         }
-        $credentials = $request->validate(['email' => ['required', 'email', 'max:190'], 'password' => ['required', 'string', 'max:255']]);
+        $credentials = $request->validate([
+            'email' => ['required', 'email', 'max:190'],
+            'password' => ['required', 'string', 'max:255'],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()],
+        ]);
         $email = Str::lower(trim($credentials['email']));
         $key = 'login:'.hash('sha256', $email.'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($key, 5)) {
@@ -91,7 +95,7 @@ class AuthController extends Controller
 
     public function sendResetLink(Request $request): RedirectResponse
     {
-        $request->validate(['email' => ['required', 'email', 'max:190']]);
+        $request->validate(['email' => ['required', 'email', 'max:190'], \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()]]);
         Password::sendResetLink(['email' => Str::lower(trim($request->string('email')->toString()))]);
         return back()->with('status', 'If that account can receive reset messages, instructions will be sent to its email address.');
     }

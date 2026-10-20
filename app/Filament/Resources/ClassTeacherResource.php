@@ -17,9 +17,9 @@ use Filament\Tables\Table;
 class ClassTeacherResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage teachers';
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 5;
     protected static ?string $navigationLabel = 'Class teachers';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Students & staff';
     protected static ?string $model = ClassTeacher::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 

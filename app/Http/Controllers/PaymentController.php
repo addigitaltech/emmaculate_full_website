@@ -54,7 +54,7 @@ class PaymentController extends Controller
             'safe_metadata' => ['fee_assignment_id' => $assignment->id],
         ]);
         try {
-            $session = $provider->initiate($transaction, (string) $user->email, (string) $user->name);
+            $session = $provider->initiate($transaction, $this->customerEmail($user, $assignment->student), (string) $user->name);
             $checkoutUrl = (string) ($session['authorization_url'] ?? '');
             abort_unless($this->approvedCheckoutUrl($gateway, $checkoutUrl), 502, 'The payment provider returned an untrusted checkout address.');
             $transaction->update([
@@ -97,6 +97,21 @@ class PaymentController extends Controller
             report($exception);
         }
         return redirect()->route($request->user() ? 'portal.dashboard' : 'login')->with('status', 'The provider return did not confirm payment. The fee remains pending until a verified provider update is received.');
+    }
+
+    /** Payment gateways need a real email for the receipt. Student accounts have none, so use a parent's, then the school's. */
+    private function customerEmail($user, Student $student): string
+    {
+        $email = (string) $user->email;
+        if ($email !== '' && ! str_ends_with(strtolower($email), '.invalid')) {
+            return $email;
+        }
+        $parentEmail = $student->parents()->whereNotNull('email')->value('email');
+        if (filled($parentEmail)) {
+            return (string) $parentEmail;
+        }
+
+        return (string) (\App\Models\SchoolSettings::current()->email ?: config('mail.from.address'));
     }
 
     private function mayPayFor($user, Student $student): bool

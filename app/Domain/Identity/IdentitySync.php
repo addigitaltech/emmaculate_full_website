@@ -33,7 +33,7 @@ final class IdentitySync
             if (! $fresh || $fresh->user_id) {
                 return;
             }
-            $user = self::makeUser($fresh->fullName(), 'student-'.$fresh->id.'@students.emmaculateacademy.invalid', 'Student');
+            $user = self::makeUser($fresh->fullName(), 'student-'.$fresh->id.'@students.invalid', 'Student');
             $fresh->forceFill(['user_id' => $user->id])->saveQuietly();
             $student->user_id = $user->id;
         });

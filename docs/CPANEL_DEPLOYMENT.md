@@ -8,11 +8,10 @@ Render is only a test site. This is the production route.
 - Terminal or SSH, cron jobs, free AutoSSL certificate, and the ability to change the domain's document root.
 - LiteSpeed web server is best. At least 1-2 GB RAM and a generous "entry processes" limit (50+). See docs/TRAFFIC_PLAN_CPANEL.md.
 
-## 1. Build the release (on a computer or Termux, not on the server)
-```
-bash deploy/build-cpanel-release.sh
-```
-This installs production packages, builds the CSS/JS and creates `release-YYYYMMDD-HHMM.zip`.
+## 1. Get the release ZIP (no computer tools needed)
+Easiest: on GitHub open the repository > **Actions** > **Build cPanel release** > **Run workflow**. When it finishes (about 5 minutes), open the run and download the `cpanel-release` file (a ZIP). This ZIP already contains the PHP packages and the built CSS/JS.
+
+Alternative on a computer with PHP 8.3, Composer and Node: `bash deploy/build-cpanel-release.sh`.
 
 ## 2. Create the database
 cPanel > MySQL Databases: create a database and a user, add the user to the database with ALL PRIVILEGES. Note the full names (they start with your cPanel username).
@@ -40,6 +39,13 @@ php artisan optimize
 Then delete the `SCHOOL_ADMIN_*` lines from `.env`, run `php artisan config:clear && php artisan optimize`, and sign in at `/admin`.
 If `storage:link` is blocked, make the link `public/storage -> ../storage/app/public` in File Manager (or copy the folder).
 
+### No Terminal on your plan?
+Some cheap cPanel plans have no Terminal. Use **cPanel > Cron Jobs** instead: add a job set to run once (pick a time two minutes ahead) with this command, then delete the job afterwards:
+```
+/usr/local/bin/php /home/USERNAME/emmaculate/artisan migrate --force && /usr/local/bin/php /home/USERNAME/emmaculate/artisan school:init && /usr/local/bin/php /home/USERNAME/emmaculate/artisan storage:link && /usr/local/bin/php /home/USERNAME/emmaculate/artisan optimize
+```
+Put your own `APP_KEY` in `.env` first (generate one at https://generate-random.org/laravel-key-generator, or on any computer with `php artisan key:generate --show`).
+
 ## 7. Cron (cPanel > Cron Jobs, every minute)
 ```
 /usr/local/bin/php /home/USERNAME/emmaculate/artisan schedule:run >> /dev/null 2>&1
@@ -54,5 +60,6 @@ php artisan migrate --force && php artisan school:init && php artisan optimize:c
 ## 9. Before going live
 - Delete the demo accounts (`@demo.emmaculate.test`) and demo class/students.
 - Set the real phone, email, social links in Admin > School settings.
-- Set up email (docs/EMAIL_SETUP.md) and put Cloudflare in front (docs/TRAFFIC_PLAN_CPANEL.md).
+- Set up email (docs/EMAIL_SETUP.md), put Cloudflare in front (docs/TRAFFIC_PLAN_CPANEL.md) and switch on the sign-in check (docs/SECURITY.md).
+- In School settings check the **Student ID prefix**, then use Students > *Assign Student IDs to older records* and People > PIN slips.
 - Back up: cPanel > Backup (database + files) on a schedule, and download a copy.

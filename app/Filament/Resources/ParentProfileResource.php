@@ -15,7 +15,7 @@ class ParentProfileResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage students';
     protected static ?int $navigationSort = 3;
     protected static ?string $navigationLabel = 'Parents';
-    protected static ?string $navigationGroup = 'People';
+    protected static ?string $navigationGroup = 'Students & staff';
     protected static ?string $model = ParentProfile::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
     public static function form(Form $form): Form

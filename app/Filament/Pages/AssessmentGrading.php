@@ -20,7 +20,7 @@ class AssessmentGrading extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $navigationLabel = 'Assessment & grading';
     protected static ?int $navigationSort = 7;
     protected static ?string $title = 'Assessment & grading';

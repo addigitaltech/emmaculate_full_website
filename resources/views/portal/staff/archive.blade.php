@@ -24,7 +24,7 @@
                 <tbody>
                 @forelse($students as $student)
                     <tr>
-                        <td><strong>{{ strtoupper($student->last_name) }}</strong>, {{ trim($student->first_name.' '.$student->other_names) }}<div class="muted" style="font-size:.75rem">{{ $student->student_number }}</div></td>
+                        <td><strong>{{ strtoupper($student->last_name) }}</strong>, {{ trim($student->first_name.' '.$student->other_names) }}<div class="muted" style="font-size:.75rem">{{ $student->student_number }}@if($student->status === 'graduated') &middot; <strong>Graduated</strong>@endif</div></td>
                         <td>{{ $student->schoolClass?->name ?: '—' }}@if($student->arm) ({{ $student->arm->name }})@endif</td>
                         <td>@if($isAdmin)@foreach(($termsByStudent[$student->id] ?? []) as $reportTerm)<a class="link-action link-action--blue" style="margin:0 .9rem .3rem 0" target="_blank" rel="noopener" href="{{ route('reports.show', ['student' => $student->id, 'term' => $reportTerm->id]) }}">{{ $reportTerm->session?->name }} · {{ $reportTerm->name }}</a>@endforeach @else<span class="muted">Use assigned subject sheets for result access.</span>@endif</td>
                     </tr>

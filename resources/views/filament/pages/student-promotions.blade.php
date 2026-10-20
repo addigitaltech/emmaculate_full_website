@@ -75,6 +75,9 @@
                                             <div class="flex gap-2">
                                                 <x-filament::button size="sm" color="success" wire:click="decide({{ $promotion->id }}, 'promote')">Promote</x-filament::button>
                                                 <x-filament::button size="sm" color="gray" wire:click="decide({{ $promotion->id }}, 'retain')">Retain</x-filament::button>
+                                                @if($promotion->sourceClass?->is_graduating)
+                                                    <x-filament::button size="sm" color="warning" wire:click="decide({{ $promotion->id }}, 'graduate')" wire:confirm="Graduate this student? They move to the archive and can no longer sign in or check results.">Graduate</x-filament::button>
+                                                @endif
                                             </div>
                                         </div>
                                     @else

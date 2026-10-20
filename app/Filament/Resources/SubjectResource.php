@@ -15,7 +15,7 @@ class SubjectResource extends AuthorizedResource
     protected static ?string $requiredPermission = 'manage academic structure';
     protected static ?int $navigationSort = 5;
     protected static ?string $navigationLabel = 'Subjects';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?string $navigationGroup = 'Classes & subjects';
     protected static ?string $model = Subject::class;
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
     public static function form(Form $form): Form

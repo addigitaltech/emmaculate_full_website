@@ -23,9 +23,9 @@ class StudentPinSlips extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
-    protected static ?string $navigationGroup = 'People';
+    protected static ?string $navigationGroup = 'Students & staff';
     protected static ?string $navigationLabel = 'PIN slips';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
     protected static ?string $title = 'Print student PIN slips';
     protected static string $view = 'filament.pages.simple-form';
 

@@ -29,6 +29,7 @@ class StudentAccessController extends Controller
         $data = $request->validate([
             'student_id' => ['required', 'string', 'max:60'],
             'surname' => ['required', 'string', 'max:80'],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()],
         ] + ($pinRequired ? ['pin' => ['required', 'string', 'regex:/^\s*\d{6}\s*$/']] : []), ['pin.regex' => 'Enter the 6-digit PIN from your PIN slip.']);
 
         $key = 'student-login:'.hash('sha256', StudentLookup::normaliseNumber($data['student_id']).'|'.$request->ip());
@@ -97,7 +98,7 @@ class StudentAccessController extends Controller
             $user = new User();
             $user->forceFill([
                 'name' => $fresh->fullName(),
-                'email' => 'student-'.$fresh->id.'@students.emmaculateacademy.invalid',
+                'email' => 'student-'.$fresh->id.'@students.invalid',
                 'email_verified_at' => now(),
                 'password' => Hash::make(Str::random(48)),
             ])->save();

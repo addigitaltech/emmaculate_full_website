@@ -24,9 +24,9 @@ class StudentPromotions extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-up';
-    protected static ?string $navigationGroup = 'Results';
-    protected static ?string $navigationLabel = 'Student promotions';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Students & staff';
+    protected static ?string $navigationLabel = 'Promote & graduate';
+    protected static ?int $navigationSort = 7;
     protected static ?string $title = 'Student promotions';
     protected static string $view = 'filament.pages.student-promotions';
 
@@ -155,7 +155,7 @@ class StudentPromotions extends Page implements HasForms
             : null;
 
         app(PromotionService::class)->decide($record, $actor, $decision, $destinationClassId, $destinationArmId);
-        Notification::make()->success()->title($decision === 'promote' ? 'Student promoted' : 'Student retained')->send();
+        Notification::make()->success()->title(match ($decision) { 'promote' => 'Student promoted', 'graduate' => 'Student graduated and archived', default => 'Student retained' })->send();
     }
 
     public function promotionMode(): string

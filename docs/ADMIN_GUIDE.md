@@ -4,28 +4,27 @@ Everything is in the menu on the left of /admin. Each thing is changed in ONE pl
 
 | I want to… | Go to |
 |---|---|
-| Change the school name, logo, address, phone, email, WhatsApp, social links, colours, GPS map | **School profile > School profile** |
-| Edit the mission, vision, pledge or anthem | **School profile > School profile** (tab "Mission, pledge & anthem") |
-| Add or change the Principal, Proprietor or other leaders | **School profile > School leadership** |
-| Post school news | **Website > News** |
-| Post an event | **Website > Events** |
-| Show a notice on the home page (hide it later) | **Website > Announcements** (choose Published or Unpublished) |
-| Add photos to the gallery | **Website > Gallery** (open an album, press "Add a photo") |
-| Upload or reuse pictures | **Website > Media library** (or the + button on any picture field) |
-| Edit About, History and other pages | **Website > Pages** |
-| Change the big pictures at the top of the home page | **Homepage & menus > Homepage banners** |
-| Change what the school teaches (Primary, Secondary…) | **Homepage & menus > Programmes** |
-| Change the top menu or footer links | **Homepage & menus > Menus / Footer** |
-| Open or close admissions, requirements, steps | **Admissions & messages > Admission information** |
-| See applications, contact messages, newsletter subscribers | **Admissions & messages** |
-| Email parents / staff / subscribers | **Admissions & messages > Send an email** |
-| Add students (one by one or from a CSV file), teachers, parents | **People** |
-| Create logins and give roles | **People > Users & logins** |
-| Create sessions, terms, classes, arms, subjects, who teaches what | **Academics setup** |
-| Set CA/Exam marks, pass mark and grades (once, for every class) | **Academics setup > Assessment & grading** |
+| Start with the most common jobs | The **Start here** buttons on the dashboard |
+| Change the school name, logo, address, phone, email, colours, **Student ID prefix** | **Settings > School profile** (and the Student ID prefix under *Advanced > All school settings*) |
+| Turn the student portal, parent portal, Check Result and the **PIN** on or off | **Settings > Portal & website switches** (Super Admin only) |
+| Add a student (the Student ID is made automatically) | **Students & staff > Students > New** |
+| Add the whole school at once | **Students & staff > Students > Download upload sheet**, fill it in, then **Import from CSV** |
+| Link a parent to a student (optional) | When adding or editing the student, "Parent / guardian"; or **Students & staff > Parents** |
+| Print PIN slips for a class or the whole school | **Students & staff > PIN slips** |
+| Give older students a proper Student ID | **Students & staff > Students > Assign Student IDs to older records** |
+| Add teachers and parents (email + password) | **Students & staff > Teachers / Parents** |
+| Choose a class teacher for each arm | **Students & staff > Class teachers** |
+| Move students up a class, or graduate the final class | **Students & staff > Promote & graduate** (mark the last class as a *Final class* in Classes) |
+| Look up a graduated student | **Students & staff > Graduated students (archive)** or **Results > Reports archive** |
+| Create logins and give roles | **Students & staff > Users & logins** |
+| Create sessions, terms, classes, arms, subjects, who teaches what | **Classes & subjects** |
+| Set CA/Exam marks, pass mark and grades (once, for every class) | **Classes & subjects > Assessment & grading** |
 | Enter, publish and print results | **Results** (Manage results, Reports archive) |
-| Fees, payments, payment gateways | **Fees & payments** |
-| Turn the student portal, parent portal or "Check Result" on/off; hide the footer admin link | **System > Portal & website switches** (Super Admin only) |
+| Fees, payments, payment gateways, receipts | **Fees & payments** |
+| Post news, events, announcements, gallery, pages, pictures | **Website** |
+| Change the home page banners, programmes, menus, footer | **Homepage & menus** |
+| Open or close admissions; see applications and messages; email people | **Admissions & messages** |
+| See who changed what | **Settings > Activity log** |
 
 ## Good to know
 - **Pictures:** every picture field has a "+" button. Upload from your phone or computer; it is saved in the Media library automatically.

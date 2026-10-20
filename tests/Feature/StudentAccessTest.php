@@ -175,16 +175,20 @@ class StudentAccessTest extends TestCase
         $this->get($url)->assertOk()->assertSee('Okoro');
     }
 
-    #[Test]
-    public function the_public_checker_lists_only_the_current_published_term(): void
+    private function pastTerm(string $name = 'Second Term', int $sequence = 2): AcademicTerm
     {
-        $historicalTerm = AcademicTerm::query()->create([
+        return AcademicTerm::query()->create([
             'academic_session_id' => $this->term->academic_session_id,
-            'name' => 'Second Term',
-            'sequence' => 2,
+            'name' => $name,
+            'sequence' => $sequence,
             'is_current' => false,
         ]);
-        $this->publishResultFor($historicalTerm);
+    }
+
+    #[Test]
+    public function without_choosing_a_term_the_public_checker_shows_the_current_term_only(): void
+    {
+        $this->publishResultFor($this->pastTerm());
         $this->settings(['public_result_check_enabled' => true]);
 
         $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin])
@@ -194,23 +198,49 @@ class StudentAccessTest extends TestCase
     }
 
     #[Test]
-    public function a_signed_public_report_link_for_a_non_current_term_is_rejected(): void
+    public function a_published_past_term_can_be_checked_by_choosing_its_session_and_term(): void
     {
-        $historicalTerm = AcademicTerm::query()->create([
-            'academic_session_id' => $this->term->academic_session_id,
-            'name' => 'Second Term',
-            'sequence' => 2,
-            'is_current' => false,
-        ]);
-        $this->publishResultFor($historicalTerm);
+        $past = $this->pastTerm();
+        $this->publishResultFor($past);
         $this->settings(['public_result_check_enabled' => true]);
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-            'result-check.report',
-            now()->addMinutes(5),
-            ['student' => $this->student->id, 'term' => $historicalTerm->id],
-        );
 
-        $this->get($url)->assertNotFound();
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin, 'academic_session_id' => $past->academic_session_id, 'academic_term_id' => $past->id])
+            ->assertOk()
+            ->assertSee('Second Term');
+    }
+
+    #[Test]
+    public function a_term_without_published_results_or_from_another_session_is_not_available(): void
+    {
+        $unpublished = $this->pastTerm('Third Term', 3);
+        $this->settings(['public_result_check_enabled' => true]);
+
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin, 'academic_term_id' => $unpublished->id])
+            ->assertSessionHasErrors('student_id');
+        $this->post(route('result-check.lookup'), ['student_id' => 'ADM-001', 'surname' => 'OKORO', 'pin' => $this->pin, 'academic_session_id' => 999999, 'academic_term_id' => $this->term->id])
+            ->assertSessionHasErrors('student_id');
+    }
+
+    #[Test]
+    public function a_signed_public_report_link_for_a_published_past_term_works_and_an_unpublished_one_does_not(): void
+    {
+        $past = $this->pastTerm();
+        $this->publishResultFor($past);
+        $unpublished = $this->pastTerm('Third Term', 3);
+        $this->settings(['public_result_check_enabled' => true]);
+        $link = fn (AcademicTerm $term) => \Illuminate\Support\Facades\URL::temporarySignedRoute('result-check.report', now()->addMinutes(5), ['student' => $this->student->id, 'term' => $term->id]);
+
+        $this->get($link($past))->assertOk();
+        $this->get($link($unpublished))->assertNotFound();
+    }
+
+    #[Test]
+    public function the_checker_form_offers_the_session_and_term_lists(): void
+    {
+        $this->publishResultFor($this->pastTerm());
+        $this->settings(['public_result_check_enabled' => true]);
+
+        $this->get(route('result-check'))->assertOk()->assertSee('name="academic_session_id"', false)->assertSee('name="academic_term_id"', false)->assertSee('Second Term');
     }
 
     #[Test]

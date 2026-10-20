@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\Login::class)
             ->brandName(fn () => SchoolSettings::current()->school_name.' admin')
             ->brandLogo(fn () => ($path = SchoolSettings::current()->logo_path) ? asset('storage/'.$path) : null)
             ->brandLogoHeight('2.6rem')
@@ -42,15 +42,15 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
             ])
             ->navigationGroups([
-                NavigationGroup::make('Website'),
-                NavigationGroup::make('School profile'),
-                NavigationGroup::make('Homepage & menus')->collapsed(),
-                NavigationGroup::make('Admissions & messages'),
-                NavigationGroup::make('People'),
-                NavigationGroup::make('Academics setup')->collapsed(),
+                NavigationGroup::make('Students & staff'),
                 NavigationGroup::make('Results'),
-                NavigationGroup::make('Fees & payments')->collapsed(),
-                NavigationGroup::make('System')->collapsed(),
+                NavigationGroup::make('Fees & payments'),
+                NavigationGroup::make('Classes & subjects')->collapsed(),
+                NavigationGroup::make('Admissions & messages'),
+                NavigationGroup::make('Website'),
+                NavigationGroup::make('Homepage & menus')->collapsed(),
+                NavigationGroup::make('Settings')->collapsed(),
+                NavigationGroup::make('Advanced')->collapsed(),
             ])
             ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.back-to-site'))
             ->navigationItems([
@@ -81,6 +81,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
+                \App\Filament\Widgets\QuickActions::class,
                 Widgets\AccountWidget::class,
             ])
             ->middleware([

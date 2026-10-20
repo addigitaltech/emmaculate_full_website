@@ -12,7 +12,7 @@ class Student extends Model
 
     protected $fillable = ['user_id', 'student_number', 'first_name', 'last_name', 'other_names', 'gender', 'date_of_birth', 'school_class_id', 'arm_id', 'photo_id', 'admission_date', 'status'];
     protected $hidden = ['pin_hash'];
-    protected function casts(): array { return ['date_of_birth' => 'date', 'admission_date' => 'date', 'pin_set_at' => 'datetime', 'pin_locked_until' => 'datetime']; }
+    protected function casts(): array { return ['date_of_birth' => 'date', 'admission_date' => 'date', 'graduated_at' => 'datetime', 'pin_set_at' => 'datetime', 'pin_locked_until' => 'datetime']; }
 
     protected static function booted(): void
     {

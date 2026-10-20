@@ -17,8 +17,8 @@ class ResultResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage results';
     protected static ?int $navigationSort = 3;
-    protected static ?string $navigationLabel = 'Result records';
-    protected static ?string $navigationGroup = 'Results';
+    protected static ?string $navigationLabel = 'Result records (raw)';
+    protected static ?string $navigationGroup = 'Advanced';
     protected static bool $readOnly = true;
     protected static ?string $model = Result::class;
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';

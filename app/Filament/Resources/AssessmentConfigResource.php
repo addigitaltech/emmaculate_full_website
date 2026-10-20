@@ -19,9 +19,9 @@ class AssessmentConfigResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage academic structure';
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?int $navigationSort = 91;
-    protected static ?string $navigationLabel = 'Assessment setup';
-    protected static ?string $navigationGroup = 'Academics setup';
+    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationLabel = 'Assessment setup (raw)';
+    protected static ?string $navigationGroup = 'Advanced';
     protected static ?string $model = AssessmentConfig::class;
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
     public static function form(Form $form): Form

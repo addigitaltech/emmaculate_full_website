@@ -17,7 +17,7 @@ class PaymentReceiptResource extends AuthorizedResource
 {
     protected static ?string $requiredPermission = 'manage payments';
     protected static bool $shouldRegisterNavigation = false;
-    protected static ?int $navigationSort = 95;
+    protected static ?int $navigationSort = 5;
     protected static ?string $navigationLabel = 'Receipts';
     protected static ?string $navigationGroup = 'Fees & payments';
     protected static bool $readOnly = true;
