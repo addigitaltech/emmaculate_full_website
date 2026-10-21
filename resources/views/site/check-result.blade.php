@@ -50,7 +50,7 @@
                     @error('student_id')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     @error('surname')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                     @error('pin')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
-                <x-turnstile />
+                <x-turnstile action="check_result" />
                     <button type="submit" class="btn btn--maroon btn--block">View result</button>
                 </form>
                 <p class="muted" style="font-size:.82rem;margin:1rem 0 0">Choose the session and term you want. Only results the school has published are shown. Having trouble? <a href="{{ route('contact') }}" style="text-decoration:underline">Contact the school</a>.</p>

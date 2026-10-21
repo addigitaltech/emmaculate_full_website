@@ -29,7 +29,7 @@ class StudentAccessController extends Controller
         $data = $request->validate([
             'student_id' => ['required', 'string', 'max:60'],
             'surname' => ['required', 'string', 'max:80'],
-            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha('student_login')],
         ] + ($pinRequired ? ['pin' => ['required', 'string', 'regex:/^\s*\d{6}\s*$/']] : []), ['pin.regex' => 'Enter the 6-digit PIN from your PIN slip.']);
 
         $key = 'student-login:'.hash('sha256', StudentLookup::normaliseNumber($data['student_id']).'|'.$request->ip());

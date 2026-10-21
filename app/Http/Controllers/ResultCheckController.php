@@ -39,7 +39,7 @@ class ResultCheckController extends Controller
         $data = $request->validate([
             'student_id' => ['required', 'string', 'max:60'],
             'surname' => ['required', 'string', 'max:80'],
-            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha('check_result')],
             'academic_session_id' => ['nullable', 'integer'],
             'academic_term_id' => ['nullable', 'integer'],
         ] + ($pinRequired ? ['pin' => ['required', 'string', 'regex:/^\s*\d{6}\s*$/']] : []), ['pin.regex' => 'Enter the 6-digit PIN from your PIN slip.']);

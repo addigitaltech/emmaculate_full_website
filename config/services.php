@@ -39,6 +39,10 @@ return [
     'turnstile' => [
         'site_key' => env('TURNSTILE_SITE_KEY'),
         'secret_key' => env('TURNSTILE_SECRET_KEY'),
+        // Comma-separated hostnames this site is served on. Empty means "the host the visitor used".
+        'hostnames' => env('TURNSTILE_HOSTNAMES'),
+        // Keep true in production. Set false only when trying Cloudflare's dummy test keys, which report a fake hostname/action.
+        'strict_context' => env('TURNSTILE_STRICT_CONTEXT', true),
     ],
 
     'paystack' => [
