@@ -83,7 +83,7 @@ class TurnstileTest extends TestCase
     {
         $this->turnOn();
         $this->user();
-        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true], 200)]);
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'portal_login', 'hostname' => 'localhost'], 200)]);
 
         $this->post(route('login.staff.submit'), ['email' => 'staff@example.test', 'password' => 'Str0ng!Passw0rd#1', 'cf-turnstile-response' => 'good-token'])->assertRedirect();
         $this->assertAuthenticated();
@@ -131,5 +131,60 @@ class TurnstileTest extends TestCase
 
         $this->assertStringContainsString('script-src \'self\' https://challenges.cloudflare.com', $csp);
         $this->assertStringContainsString('frame-src \'self\' https://www.openstreetmap.org https://challenges.cloudflare.com', $csp);
+    }
+
+    #[Test]
+    public function a_token_earned_on_a_different_form_is_refused(): void
+    {
+        $this->turnOn();
+        $this->user();
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'check_result', 'hostname' => 'localhost'], 200)]);
+
+        $this->post(route('login.staff.submit'), ['email' => 'staff@example.test', 'password' => 'Str0ng!Passw0rd#1', 'cf-turnstile-response' => 'token'])->assertSessionHasErrors('cf-turnstile-response');
+        $this->assertGuest();
+    }
+
+    #[Test]
+    public function a_token_earned_on_a_different_website_is_refused(): void
+    {
+        $this->turnOn();
+        $this->user();
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'portal_login', 'hostname' => 'somewhere-else.example'], 200)]);
+
+        $this->post(route('login.staff.submit'), ['email' => 'staff@example.test', 'password' => 'Str0ng!Passw0rd#1', 'cf-turnstile-response' => 'token'])->assertSessionHasErrors('cf-turnstile-response');
+        $this->assertGuest();
+    }
+
+    #[Test]
+    public function the_allowed_hostnames_can_be_set_explicitly(): void
+    {
+        $this->turnOn();
+        config(['services.turnstile.hostnames' => 'school.example.org, www.school.example.org']);
+        $this->user();
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'portal_login', 'hostname' => 'www.school.example.org'], 200)]);
+
+        $this->post(route('login.staff.submit'), ['email' => 'staff@example.test', 'password' => 'Str0ng!Passw0rd#1', 'cf-turnstile-response' => 'token'])->assertRedirect();
+        $this->assertAuthenticated();
+    }
+
+    #[Test]
+    public function the_widget_names_its_form_action(): void
+    {
+        $this->turnOn();
+
+        $this->get(route('login.student'))->assertOk()->assertSee('data-action="student_login"', false);
+        $this->get(route('password.request'))->assertOk()->assertSee('data-action="password_reset"', false);
+    }
+
+    #[Test]
+    public function the_strict_check_can_be_relaxed_for_cloudflares_dummy_test_keys(): void
+    {
+        $this->turnOn();
+        config(['services.turnstile.strict_context' => false]);
+        $this->user();
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true, 'action' => 'test', 'hostname' => 'example.com'], 200)]);
+
+        $this->post(route('login.staff.submit'), ['email' => 'staff@example.test', 'password' => 'Str0ng!Passw0rd#1', 'cf-turnstile-response' => 'token'])->assertRedirect();
+        $this->assertAuthenticated();
     }
 }

@@ -35,7 +35,7 @@ class Login extends BaseLogin
             ->view('filament.forms.turnstile')
             ->hiddenLabel()
             ->visible(fn (): bool => Turnstile::enabled())
-            ->rules(Turnstile::enabled() ? ['required', new TurnstileCaptcha()] : [])
+            ->rules(Turnstile::enabled() ? ['required', new TurnstileCaptcha('admin_login')] : [])
             ->validationMessages(['required' => 'Please complete the security check ("I am not a robot") and try again.']);
     }
 

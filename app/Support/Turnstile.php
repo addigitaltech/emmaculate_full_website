@@ -23,8 +23,12 @@ final class Turnstile
         return config('services.turnstile.site_key');
     }
 
-    /** True when the visitor's token is confirmed by Cloudflare (always true while Turnstile is switched off). */
-    public static function verify(?string $token, ?string $ip = null): bool
+    /**
+     * True when the visitor's token is confirmed by Cloudflare (always true while Turnstile is switched off).
+     * Besides "success", the answer must carry the action of the form being submitted and the hostname this site is
+     * served on, so a token earned on another form or another website cannot be reused here.
+     */
+    public static function verify(?string $token, ?string $ip = null, ?string $expectedAction = null, ?string $requestHost = null): bool
     {
         if (! self::enabled()) {
             return true;
@@ -34,7 +38,7 @@ final class Turnstile
         }
 
         try {
-            $response = Http::asForm()->timeout(6)->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', array_filter([
+            $response = Http::asForm()->timeout(10)->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', array_filter([
                 'secret' => config('services.turnstile.secret_key'),
                 'response' => $token,
                 'remoteip' => $ip,
@@ -43,6 +47,23 @@ final class Turnstile
             return false;
         }
 
-        return $response->successful() && $response->json('success') === true;
+        if (! $response->successful() || $response->json('success') !== true) {
+            return false;
+        }
+        if (! filter_var(config('services.turnstile.strict_context', true), FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        if ($expectedAction !== null && $response->json('action') !== $expectedAction) {
+            return false;
+        }
+
+        $allowed = collect(explode(',', (string) config('services.turnstile.hostnames')))
+            ->map(fn ($host) => strtolower(trim($host)))->filter()->values();
+        if ($allowed->isEmpty() && filled($requestHost)) {
+            $allowed = collect([strtolower((string) $requestHost)]);
+        }
+
+        return $allowed->contains(strtolower((string) $response->json('hostname')));
     }
 }

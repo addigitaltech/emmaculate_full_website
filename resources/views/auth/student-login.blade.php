@@ -15,7 +15,7 @@
                 @error('student_id')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                 @error('surname')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
                 @error('pin')<div class="alert alert--error" role="alert">{{ $message }}</div>@enderror
-                <x-turnstile />
+                <x-turnstile action="student_login" />
                 <button type="submit" class="btn btn--maroon btn--block">Sign in</button>
             </form>
             <p class="muted" style="font-size:.85rem;margin:1rem 0 0">Cannot sign in? Ask the school office to confirm your Student ID and surname, or to give you a new PIN slip.</p>

@@ -40,7 +40,7 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email', 'max:190'],
             'password' => ['required', 'string', 'max:255'],
-            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha('portal_login')],
         ]);
         $email = Str::lower(trim($credentials['email']));
         $key = 'login:'.hash('sha256', $email.'|'.$request->ip());
@@ -95,7 +95,7 @@ class AuthController extends Controller
 
     public function sendResetLink(Request $request): RedirectResponse
     {
-        $request->validate(['email' => ['required', 'email', 'max:190'], \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha()]]);
+        $request->validate(['email' => ['required', 'email', 'max:190'], \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha('password_reset')]]);
         Password::sendResetLink(['email' => Str::lower(trim($request->string('email')->toString()))]);
         return back()->with('status', 'If that account can receive reset messages, instructions will be sent to its email address.');
     }
