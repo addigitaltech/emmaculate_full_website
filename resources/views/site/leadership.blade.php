@@ -10,7 +10,7 @@
         <div class="leader-grid" style="margin-top:0">
             @foreach($leaders as $leader)
                 @php
-                    $photo = $leader->photo?->url() ?? ($leader->photo_path ? asset('storage/'.$leader->photo_path) : null);
+                    $photo = $leader->photo?->url() ?? ($leader->photo_path ? \App\Support\MediaUrl::for($leader->photo_path) : null);
                 @endphp
                 <article class="leader-card">
                     <div class="leader-card__photo">@if($photo)<img src="{{ $photo }}" alt="{{ $leader->name }}, {{ $leader->title }}" loading="lazy" decoding="async">@else<span>Photo coming soon</span>@endif</div>

@@ -38,7 +38,7 @@ Step-by-step for XAMPP: [docs/INSTALL_XAMPP.md](docs/INSTALL_XAMPP.md). For cPan
 - **Checking results**: students/parents sign in with Student ID, surname and an optional PIN; the public Check Result page lets people choose the session and term. PIN use is a switch in Portal settings.
 - **PIN slips** printed in bulk for a class or the whole school.
 - **Promotion and graduation**: move classes up each session; the final class (e.g. SS3) graduates into an archive that only administrators can open.
-- **Fees and payments**: Paystack and Flutterwave, verified with the provider before anything is marked paid; receipts; optional "hold results until fees are paid".
+- **Fees and payments**: fees assigned to classes and arms; full payment or installments (a school setting); Paystack and Flutterwave, verified with the provider before anything is marked paid; printable receipts emailed to the payer; email and SMS alerts to the school; payment history and debts printable by date range or session; optional "hold results until fees are paid". See [docs/PAYMENTS.md](docs/PAYMENTS.md).
 - **Security**: Cloudflare Turnstile on every sign-in (optional, free), strict security headers, per-student lockouts, strong passwords, activity log. See [docs/SECURITY.md](docs/SECURITY.md).
 - **Simple admin menu** with "Start here" buttons. See [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md).
 

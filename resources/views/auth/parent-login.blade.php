@@ -1,7 +1,7 @@
 @extends('site.layout')
 @section('title', 'Parent Portal | '.$settings->short_name)
 @section('content')
-<x-page-hero eyebrow="Parent Portal" title="Parent sign-in" lead="Sign in with the email address you gave the school to see your children's results and fees." :image="asset('storage/migrated-images/textbooks.jpg')" :crumbs="[['Home', route('home')], ['Parent Portal', null]]" />
+<x-page-hero eyebrow="Parent Portal" title="Parent sign-in" lead="Sign in with the email address you gave the school to see your children's results and fees." :image="\App\Support\MediaUrl::for('migrated-images/textbooks.jpg')" :crumbs="[['Home', route('home')], ['Parent Portal', null]]" />
 <section class="section">
     <div class="site-container" style="max-width:34rem">
         <div class="card card--pad auth-card">

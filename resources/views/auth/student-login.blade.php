@@ -1,7 +1,7 @@
 @extends('site.layout')
 @section('title', 'Student Portal | '.$settings->short_name)
 @section('content')
-<x-page-hero eyebrow="Student Portal" title="Student sign-in" :lead="\App\Domain\Auth\Support\PortalAccess::studentPinRequired() ? 'Use your Student ID, your surname and the PIN on your PIN slip. No email or password needed.' : 'Use your Student ID and your surname. No email or password needed.'" :image="asset('storage/migrated-images/students-group.jpg')" :crumbs="[['Home', route('home')], ['Student Portal', null]]" />
+<x-page-hero eyebrow="Student Portal" title="Student sign-in" :lead="\App\Domain\Auth\Support\PortalAccess::studentPinRequired() ? 'Use your Student ID, your surname and the PIN on your PIN slip. No email or password needed.' : 'Use your Student ID and your surname. No email or password needed.'" :image="\App\Support\MediaUrl::for('migrated-images/students-group.jpg')" :crumbs="[['Home', route('home')], ['Student Portal', null]]" />
 <section class="section">
     <div class="site-container" style="max-width:34rem">
         <div class="card card--pad auth-card">

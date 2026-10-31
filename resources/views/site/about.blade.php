@@ -61,7 +61,7 @@
         <div class="leaders">
             @foreach($leaders as $leader)
                 @php
-                    $photo = $leader->photo?->url() ?? ($leader->photo_path ? asset('storage/'.$leader->photo_path) : null);
+                    $photo = $leader->photo?->url() ?? ($leader->photo_path ? \App\Support\MediaUrl::for($leader->photo_path) : null);
                 @endphp
                 <article class="leader">
                     <div class="leader__photo">@if($photo)<img src="{{ $photo }}" alt="{{ $leader->name }}, {{ $leader->title }}" loading="lazy" decoding="async">@endif</div>

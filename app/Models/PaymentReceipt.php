@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaymentReceipt extends Model
 {
+    public function getRouteKeyName(): string
+    {
+        return 'receipt_number';
+    }
+
     protected $fillable = ['payment_transaction_id', 'receipt_number', 'storage_path', 'issued_at'];
 
     protected function casts(): array

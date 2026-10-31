@@ -16,7 +16,7 @@
     <div class="hero__slides">
         @forelse($slides as $slide)
             @php
-                $heroImage = $slide->image?->url() ?? ($slide->image_path ? asset('storage/'.$slide->image_path) : null);
+                $heroImage = $slide->image?->url() ?? ($slide->image_path ? \App\Support\MediaUrl::for($slide->image_path) : null);
             @endphp
             <div class="hero__slide{{ $loop->first ? ' is-active' : '' }}" data-hero-slide aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
                 @if($heroImage)<div class="hero__media"><img src="{{ $heroImage }}" alt="{{ $slide->image_alt }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif decoding="async"></div>@endif
@@ -36,7 +36,7 @@
             </div>
         @empty
             <div class="hero__slide is-active" data-hero-slide>
-                <div class="hero__media"><img src="{{ asset('storage/migrated-images/textbooks.jpg') }}" alt="" fetchpriority="high"></div>
+                <div class="hero__media"><img src="{{ \App\Support\MediaUrl::for('migrated-images/textbooks.jpg') }}" alt="" fetchpriority="high"></div>
                 <div class="site-container"><div class="hero__body">
                     <h1 class="hero__title">{{ $settings->school_name }}</h1>
                     @if($settings->motto)<p class="hero__lead">{{ $settings->motto }}</p>@endif
@@ -126,7 +126,7 @@
             <div class="programmes">
                 @foreach($programmes as $programme)
                     @php
-                        $programmeImage = $programme->image?->url() ?? ($programme->image_path ? asset('storage/'.$programme->image_path) : null);
+                        $programmeImage = $programme->image?->url() ?? ($programme->image_path ? \App\Support\MediaUrl::for($programme->image_path) : null);
                     @endphp
                     <article class="programme">
                         @if($programmeImage)<div class="programme__img"><img src="{{ $programmeImage }}" alt="" loading="lazy" decoding="async"></div>@endif

@@ -66,19 +66,19 @@ class PortalController extends Controller
             if ($profile && $profile->status === 'active') {
                 $reportTerms = $this->termsWithPublishedResults([$profile->id])[$profile->id] ?? collect();
                 $results = Result::published()->where('student_id', $profile->id)->with(['subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(30)->get();
-                $fees = StudentFeeAssignment::query()->where('student_id', $profile->id)->whereIn('status', ['unpaid', 'overdue'])->with('feeType')->orderBy('due_date')->get();
+                $fees = StudentFeeAssignment::query()->where('student_id', $profile->id)->whereIn('status', ['unpaid', 'overdue', 'partial'])->with(['student', 'feeType'])->orderBy('due_date')->get();
                 $payments = PaymentTransaction::query()->where('student_id', $profile->id)->with(['feeAssignment.feeType', 'receipt'])->whereIn('status', ['successful', 'pending', 'failed'])->latest()->limit(10)->get();
             }
         } elseif ($user->hasRole('Parent')) {
             $kind = 'parent';
             $profile = $user->parentProfile()->with(['students.schoolClass', 'students.arm'])->first();
             $children = ($profile?->students ?? collect())->where('status', 'active')->values();
-            $ids = $children->pluck('id')->all();
+            $ids = $children->modelKeys();
             // Fees and payment history stay visible after a child graduates, so any balance can still be settled.
-            $feeIds = ($profile?->students ?? collect())->pluck('id')->all();
+            $feeIds = ($profile?->students ?? collect())->modelKeys();
             $childTerms = $this->termsWithPublishedResults($ids);
             $results = Result::published()->whereIn('student_id', $ids)->with(['student', 'subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(50)->get();
-            $fees = StudentFeeAssignment::query()->whereIn('student_id', $feeIds)->whereIn('status', ['unpaid', 'overdue'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();
+            $fees = StudentFeeAssignment::query()->whereIn('student_id', $feeIds)->whereIn('status', ['unpaid', 'overdue', 'partial'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();
             $payments = PaymentTransaction::query()->whereIn('student_id', $feeIds)->with(['student', 'feeAssignment.feeType', 'receipt'])->whereIn('status', ['successful', 'pending', 'failed'])->latest()->limit(20)->get();
         } elseif ($user->hasRole('Teacher')) {
             $kind = 'teacher';
@@ -107,7 +107,11 @@ class PortalController extends Controller
             })
             ->map(fn (PaymentGatewayConfig $provider) => ['driver' => $provider->driver, 'name' => $provider->display_name])->values();
 
-        return compact('user', 'kind', 'profile', 'results', 'children', 'assignments', 'payments', 'fees', 'gatewayOptions', 'activity', 'pendingResults', 'reportTerms', 'childTerms', 'pendingTotal');
+        $paymentSettings = \App\Models\SchoolSettings::current();
+        $paymentMode = $paymentSettings->payment_mode === 'full' ? 'full' : 'installment';
+        $minInstallment = (float) $paymentSettings->installment_min_amount;
+
+        return compact('user', 'kind', 'profile', 'results', 'children', 'assignments', 'payments', 'fees', 'gatewayOptions', 'activity', 'pendingResults', 'reportTerms', 'childTerms', 'pendingTotal', 'paymentMode', 'minInstallment');
     }
 
     /**

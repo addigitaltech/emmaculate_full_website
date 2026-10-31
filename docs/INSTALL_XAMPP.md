@@ -44,6 +44,6 @@ Point a virtual host's DocumentRoot at the project's `public` folder (not the pr
 ## Common problems
 - *"Your PHP version does not satisfy the requirement"*: you are on PHP 8.2 or older. Install PHP 8.3+.
 - *Blank page or 500 error*: run `php artisan config:clear`, check `storage/logs/laravel.log`, and make sure `storage` and `bootstrap/cache` are writable.
-- *Pictures do not show*: run `php artisan storage:link` again.
+- *Pictures do not show*: since Update 10 pictures work even without the storage link. If a picture is still missing the file itself is missing: open Settings > Pictures check & backup > *Check pictures*, and load your pictures ZIP there. Also open the site at the same address everywhere (for example `http://localhost/school/`).
 - *Styles look broken*: run `npm run build`.
 - *Emails*: set the `MAIL_*` lines (see `docs/EMAIL_SETUP.md`) or use `MAIL_MAILER=log` to write emails to the log while testing.

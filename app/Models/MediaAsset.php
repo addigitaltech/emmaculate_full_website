@@ -27,6 +27,6 @@ class MediaAsset extends Model
 
     public function url(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return $this->disk === 'public' ? (string) \App\Support\MediaUrl::for($this->path) : Storage::disk($this->disk)->url($this->path);
     }
 }

@@ -14,7 +14,7 @@
         $c = $hex('accent');
         $themeCss .= "--gold-500:{$c};--gold-600:color-mix(in srgb,{$c} 82%,#000);--gold-400:color-mix(in srgb,{$c} 84%,#fff);";
     }
-    $logoUrl = $settings->logo_path ? asset('storage/'.$settings->logo_path) : null;
+    $logoUrl = $settings->logo_path ? \App\Support\MediaUrl::for($settings->logo_path) : null;
     // Section values are already HTML-escaped by Blade, so the fallbacks are escaped here and everything is printed raw below.
     $pageTitle = trim($__env->yieldContent('title')) ?: e($settings->school_name);
     $pageDescription = trim($__env->yieldContent('description')) ?: e($settings->description);
@@ -40,7 +40,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap">
-    <link rel="icon" href="{{ $settings->favicon_path ? asset('storage/'.$settings->favicon_path) : asset('favicon.ico') }}">
+    <link rel="icon" href="{{ $settings->favicon_path ? \App\Support\MediaUrl::for($settings->favicon_path) : asset('favicon.ico') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @if($themeCss !== '')<style>:root{ {{ $themeCss }} }</style>@endif
     @stack('head')

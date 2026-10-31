@@ -1,0 +1,29 @@
+name: Security audit
+
+# Checks the PHP and JavaScript packages for known security problems every week and on every change.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: PHP packages
+        run: composer audit --no-interaction
+      - name: JavaScript packages
+        run: npm audit --omit=dev --audit-level=high

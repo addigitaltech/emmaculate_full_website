@@ -75,7 +75,7 @@
 <section class="section--tight">
     <div class="site-container">
         <div class="band band--image band--navy">
-            <div class="band__bg"><img src="{{ asset('storage/migrated-images/students-reading.jpg') }}" alt="" loading="lazy" decoding="async"></div>
+            <div class="band__bg"><img src="{{ \App\Support\MediaUrl::for('migrated-images/students-reading.jpg') }}" alt="" loading="lazy" decoding="async"></div>
             <div class="band__lead"><span class="band__icon"><x-site-icon name="cap" /></span><div><h2 class="band__title">{{ \App\Domain\Website\Support\SiteSections::title('cta.join', 'Ready to Join Our Family?') }}</h2><p class="band__text">{{ \App\Domain\Website\Support\SiteSections::description('cta.join', 'Give your child the best start for a successful future.') }}</p></div></div>
             <div class="band__actions"><a class="btn btn--maroon" href="{{ $applyUrl }}">{{ $isOpen ? 'Apply now' : 'Contact us' }} <x-site-icon name="arrow" /></a></div>
         </div>
@@ -97,6 +97,7 @@
                 <label class="field span-2">Parent / guardian email (optional)<input name="guardian_email" type="email" value="{{ old('guardian_email') }}" maxlength="190" autocomplete="email">@error('guardian_email')<span class="field__error">{{ $message }}</span>@enderror</label>
                 <label class="field span-2">Anything else we should know? (optional)<textarea name="message" rows="4" maxlength="3000">{{ old('message') }}</textarea></label>
             </div>
+            <div style="margin-top:1.2rem"><x-turnstile action="admission" /></div>
             <p style="margin:1.2rem 0 0"><button type="submit" class="btn btn--maroon">Submit application</button></p>
             <p class="muted" style="font-size:.8rem;margin-top:.8rem">Do not include identity documents or sensitive information here. The school will contact you with the next steps.</p>
         </form>

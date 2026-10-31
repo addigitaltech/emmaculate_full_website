@@ -67,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
             $cachedModel::saved(fn () => \App\Support\SiteCache::flush());
             $cachedModel::deleted(fn () => \App\Support\SiteCache::flush());
         }
-        View::composer(['auth.*', 'portal.password', 'portal.score-entry', 'portal.staff.*', 'site.check-result'], function ($view): void {
+        View::composer(['auth.*', 'portal.score-entry', 'portal.staff.*', 'site.check-result'], function ($view): void {
             $data = $view->getData();
             $view->with([
                 'settings' => $data['settings'] ?? SchoolSettings::current(),
@@ -109,6 +109,8 @@ class AppServiceProvider extends ServiceProvider
                 'currentPath' => trim(request()->path(), '/'),
             ]);
         });
+        // Every page, per visitor address: generous enough for a school behind one shared internet connection, tight enough to stop floods.
+        RateLimiter::for('site', fn (Request $request) => Limit::perMinute(900)->by($request->ip()));
         RateLimiter::for('contact', fn (Request $request) => Limit::perMinute(5)->by((string) $request->ip()));
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
         // Many students may sign in or look up results from one school network, so these allow more per IP.

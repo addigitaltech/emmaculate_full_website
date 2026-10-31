@@ -8,7 +8,7 @@
     <div class="site-container stack" style="--gap:1.5rem">
         @forelse($chapters as $chapter)
             @php
-                $chapterImage = $chapter['media_id'] && isset($contentMedia[$chapter['media_id']]) ? $contentMedia[$chapter['media_id']]->url() : asset('storage/migrated-images/'.($loop->first ? 'students-reading.jpg' : 'students-group.jpg'));
+                $chapterImage = $chapter['media_id'] && isset($contentMedia[$chapter['media_id']]) ? $contentMedia[$chapter['media_id']]->url() : \App\Support\MediaUrl::for('migrated-images/'.($loop->first ? 'students-reading.jpg' : 'students-group.jpg'));
                 $hasText = count($chapter['paragraphs']) > 0;
             @endphp
             <article class="history-card">

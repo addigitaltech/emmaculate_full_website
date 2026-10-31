@@ -31,6 +31,7 @@
                 <label class="field">Subject (optional)<input name="subject" value="{{ old('subject', $prefillSubject) }}" maxlength="160"></label>
                 <label class="field span-2">Message<textarea name="message" rows="6" required minlength="10" maxlength="5000">{{ old('message') }}</textarea>@error('message')<span class="field__error">{{ $message }}</span>@enderror</label>
                 <div class="honeypot" aria-hidden="true"><label>Leave this field blank<input name="website" tabindex="-1" autocomplete="off"></label></div>
+                <div class="span-2"><x-turnstile action="contact" /></div>
                 <div class="span-2"><button type="submit" class="btn btn--maroon">Send message <x-site-icon name="send" /></button>
                 <p class="muted" style="font-size:.8rem;margin-top:.8rem">Messages are stored securely for school follow-up. Do not include sensitive medical, financial or identity documents.</p></div>
             </form>

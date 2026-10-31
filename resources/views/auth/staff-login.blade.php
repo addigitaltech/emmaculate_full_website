@@ -1,7 +1,7 @@
 @extends('site.layout')
 @section('title', 'Staff Portal | '.$settings->short_name)
 @section('content')
-<x-page-hero eyebrow="Staff Portal" title="Staff sign-in" lead="For teachers and school staff: enter scores, view classes and print reports." :image="asset('storage/migrated-images/students-reading.jpg')" :crumbs="[['Home', route('home')], ['Staff Portal', null]]" />
+<x-page-hero eyebrow="Staff Portal" title="Staff sign-in" lead="For teachers and school staff: enter scores, view classes and print reports." :image="\App\Support\MediaUrl::for('migrated-images/students-reading.jpg')" :crumbs="[['Home', route('home')], ['Staff Portal', null]]" />
 <section class="section">
     <div class="site-container" style="max-width:34rem">
         <div class="card card--pad auth-card">

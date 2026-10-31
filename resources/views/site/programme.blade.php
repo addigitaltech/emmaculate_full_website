@@ -3,7 +3,7 @@
 @section('description', $seoDescription ?? $programme->intro)
 @section('content')
 @php
-    $image = $programme->image?->url() ?? ($programme->image_path ? asset('storage/'.$programme->image_path) : null);
+    $image = $programme->image?->url() ?? ($programme->image_path ? \App\Support\MediaUrl::for($programme->image_path) : null);
 @endphp
 <x-page-hero :eyebrow="ucfirst($programme->level)" :title="$programme->title" :lead="\Illuminate\Support\Str::limit((string) $programme->intro, 140)" :image="$heroImage" :crumbs="[['Home', route('home')], ['Academics', route('academics')], [$programme->title, null]]" />
 <section class="section">

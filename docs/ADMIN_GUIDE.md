@@ -20,7 +20,12 @@ Everything is in the menu on the left of /admin. Each thing is changed in ONE pl
 | Create sessions, terms, classes, arms, subjects, who teaches what | **Classes & subjects** |
 | Set CA/Exam marks, pass mark and grades (once, for every class) | **Classes & subjects > Assessment & grading** |
 | Enter, publish and print results | **Results** (Manage results, Reports archive) |
+| Charge a fee to whole classes or arms | **Fees & payments > Assign fees to classes** |
+| See every payment and who still owes; print by dates or session | **Fees & payments > Payment history & debts** |
+| Full payment or installments; who is told about payments | **Settings > Portal & website switches** |
 | Fees, payments, payment gateways, receipts | **Fees & payments** |
+| Check security settings | **Settings > Security check** |
+| Check, download or load the website pictures | **Settings > Pictures check & backup** |
 | Post news, events, announcements, gallery, pages, pictures | **Website** |
 | Change the home page banners, programmes, menus, footer | **Homepage & menus** |
 | Open or close admissions; see applications and messages; email people | **Admissions & messages** |

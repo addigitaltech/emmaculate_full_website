@@ -41,24 +41,26 @@ class StudentFeeAssignmentResource extends AuthorizedResource
     public static function table(Table $table): Table
     {
         return $table->modifyQueryUsing(fn ($query) => $query->with(['student', 'feeType']))->columns([
-            Tables\Columns\TextColumn::make('student.student_number')->label('Student ID')->searchable()->sortable(),
+            Tables\Columns\TextColumn::make('student.student_number')->label('Student number')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('student.first_name')->label('Student')->formatStateUsing(fn ($state, StudentFeeAssignment $record) => $record->student?->fullName() ?? '—')->searchable(),
             Tables\Columns\TextColumn::make('feeType.name')->label('Fee')->searchable(),
             Tables\Columns\TextColumn::make('amount_due')->money('NGN')->sortable(),
+            Tables\Columns\TextColumn::make('amount_paid')->label('Paid')->money('NGN')->sortable(),
+            Tables\Columns\TextColumn::make('balance')->label('Balance')->state(fn (StudentFeeAssignment $record) => $record->balance())->money('NGN'),
             Tables\Columns\TextColumn::make('due_date')->date()->sortable(),
             Tables\Columns\TextColumn::make('status')->badge()->sortable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-        ])->actions([Tables\Actions\EditAction::make()])->bulkActions([]);
+        ])->filters([Tables\Filters\SelectFilter::make('status')->options(['unpaid' => 'Unpaid', 'partial' => 'Part paid', 'overdue' => 'Overdue', 'paid' => 'Paid'])])->actions([Tables\Actions\EditAction::make()])->bulkActions([]);
     }
 
     public static function canEdit(Model $record): bool
     {
-        return parent::canEdit($record) && $record->status !== 'paid' && ! $record->transactions()->exists();
+        return parent::canEdit($record) && $record->status !== 'paid' && ! $record->hasPaymentAttempt();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return parent::canDelete($record) && ! $record->transactions()->exists();
+        return parent::canDelete($record) && ! $record->hasPaymentAttempt();
     }
 
     public static function canDeleteAny(): bool { return false; }

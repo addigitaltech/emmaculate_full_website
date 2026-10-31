@@ -1,7 +1,7 @@
 @extends('site.layout')
 @section('title', 'Sign in | '.$settings->short_name)
 @section('content')
-<x-page-hero eyebrow="School portals" title="Which portal do you need?" lead="Each portal has its own sign-in page. Choose yours." :image="asset('storage/migrated-images/students-group.jpg')" :crumbs="[['Home', route('home')], ['Sign in', null]]" />
+<x-page-hero eyebrow="School portals" title="Which portal do you need?" lead="Each portal has its own sign-in page. Choose yours." :image="\App\Support\MediaUrl::for('migrated-images/students-group.jpg')" :crumbs="[['Home', route('home')], ['Sign in', null]]" />
 <section class="section">
     <div class="site-container" style="max-width:62rem">
         @if(count($portalLinks))

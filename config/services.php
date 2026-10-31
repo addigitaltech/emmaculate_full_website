@@ -35,6 +35,17 @@ return [
         ],
     ],
 
+    // Text messages (payment alerts). Leave empty to switch SMS off. Termii is a Nigerian SMS provider (termii.com).
+    'sms' => [
+        'driver' => env('SMS_DRIVER'),
+        'termii' => [
+            'api_key' => env('TERMII_API_KEY'),
+            'sender_id' => env('TERMII_SENDER_ID'),
+            'base_url' => env('TERMII_BASE_URL', 'https://api.ng.termii.com'),
+            'channel' => env('TERMII_CHANNEL', 'generic'),
+        ],
+    ],
+
     // Cloudflare Turnstile (sign-in protection). Leave both empty to switch it off.
     'turnstile' => [
         'site_key' => env('TURNSTILE_SITE_KEY'),

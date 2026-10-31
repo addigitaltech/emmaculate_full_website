@@ -127,7 +127,7 @@ class ResultCheckController extends Controller
         return view('site.check-result', $data + [
             'sessions' => $sessions,
             'currentTerm' => $currentTerm,
-            'heroImage' => asset('storage/migrated-images/students-group.jpg'),
+            'heroImage' => \App\Support\MediaUrl::for('migrated-images/students-group.jpg'),
         ]);
     }
 }

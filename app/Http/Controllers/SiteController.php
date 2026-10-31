@@ -66,7 +66,7 @@ class SiteController extends Controller
 
         return $this->render('site.home', $data + [
             'stats' => $this->settings()->verified_stats ?? [],
-            'aboutImage' => asset('storage/migrated-images/students-reading.jpg'),
+            'aboutImage' => \App\Support\MediaUrl::for('migrated-images/students-reading.jpg'),
             'seoDescription' => $this->settings()->description,
         ]);
     }
@@ -82,7 +82,7 @@ class SiteController extends Controller
             'paragraphs' => $page ? PageBlocks::paragraphs($page->content_blocks ?? [], 4) : [],
             'mission' => $groups['mission']['paragraphs'][0] ?? null,
             'vision' => $groups['vision']['paragraphs'][0] ?? null,
-            'aboutImage' => asset('storage/migrated-images/textbooks.jpg'),
+            'aboutImage' => \App\Support\MediaUrl::for('migrated-images/textbooks.jpg'),
             'leaders' => LeadershipProfile::query()->where('is_visible', true)->with('photo')->orderBy('sort_order')->limit(2)->get(),
             'heroImage' => $this->heroUrl('about', $page?->featuredMedia),
             'seoTitle' => $page?->seo_title ?: 'About Us',
@@ -247,7 +247,7 @@ class SiteController extends Controller
             foreach ($albums as $album) {
                 $count = 0;
                 foreach ($album->images as $image) {
-                    $url = $image->media?->url() ?? ($image->image_path ? asset('storage/'.$image->image_path) : null);
+                    $url = $image->media?->url() ?? ($image->image_path ? \App\Support\MediaUrl::for($image->image_path) : null);
                     if (! $url || count($photos) >= 150) {
                         continue;
                     }
@@ -300,6 +300,7 @@ class SiteController extends Controller
             'subject' => ['nullable', 'string', 'max:160'],
             'message' => ['required', 'string', 'min:10', 'max:5000'],
             'website' => ['nullable', 'max:0'],
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha('contact')],
         ]);
         unset($data['website']);
         $key = 'contact:'.hash('sha256', (string) $request->ip());
@@ -341,6 +342,7 @@ class SiteController extends Controller
         $settings = AdmissionsSettings::current();
         abort_unless($settings->status === 'open' && $this->settings()->admission_portal_enabled, 404);
         $data = $request->validate([
+            \App\Support\Turnstile::FIELD => [new \App\Rules\TurnstileCaptcha('admission')],
             'applicant_name' => ['required', 'string', 'max:160'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'applying_for' => ['required', 'string', 'max:120'],
@@ -461,13 +463,13 @@ class SiteController extends Controller
                     return $asset->url();
                 }
             } elseif (! str_contains($configured, '..')) {
-                return asset('storage/'.ltrim($configured, '/'));
+                return \App\Support\MediaUrl::for(ltrim($configured, '/'));
             }
         }
 
         $default = self::HERO_DEFAULTS[$key] ?? null;
 
-        return $default ? asset('storage/'.$default) : null;
+        return $default ? \App\Support\MediaUrl::for($default) : null;
     }
 
     /** @return array<int, array{url: string, alt: string}> */
@@ -477,7 +479,7 @@ class SiteController extends Controller
         $photos = [];
         foreach ($albums as $album) {
             foreach ($album->images as $image) {
-                $url = $image->media?->url() ?? ($image->image_path ? asset('storage/'.$image->image_path) : null);
+                $url = $image->media?->url() ?? ($image->image_path ? \App\Support\MediaUrl::for($image->image_path) : null);
                 if ($url) {
                     $photos[] = ['url' => $url, 'alt' => $image->alt_text ?: ($image->media?->alt_text ?: $album->title)];
                 }

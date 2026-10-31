@@ -1,5 +1,5 @@
 @php
-    $logoUrl = $settings->logo_path ? asset('storage/'.$settings->logo_path) : null;
+    $logoUrl = $settings->logo_path ? \App\Support\MediaUrl::for($settings->logo_path) : null;
     $currentPath = $currentPath ?? trim(request()->path(), '/');
     $hasTopbar = filled($settings->phone_primary) || filled($settings->email) || filled($settings->address) || ! empty($socialLinks);
 @endphp

@@ -13,7 +13,7 @@ class PaymentTransaction extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'safe_metadata' => 'array', 'attempt_count' => 'integer', 'verified_at' => 'datetime', 'refund_requested_at' => 'datetime', 'refunded_at' => 'datetime'];
+        return ['amount' => 'decimal:2', 'safe_metadata' => 'array', 'attempt_count' => 'integer', 'verified_at' => 'datetime', 'notified_at' => 'datetime', 'refund_requested_at' => 'datetime', 'refunded_at' => 'datetime'];
     }
 
     public function student() { return $this->belongsTo(Student::class); }
@@ -21,4 +21,5 @@ class PaymentTransaction extends Model
     public function initiator() { return $this->belongsTo(User::class, 'initiated_by'); }
     public function events() { return $this->hasMany(PaymentEvent::class); }
     public function receipt() { return $this->hasOne(PaymentReceipt::class); }
+    public function allocations() { return $this->hasMany(PaymentAllocation::class, 'payment_transaction_id'); }
 }

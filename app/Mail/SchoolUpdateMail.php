@@ -36,7 +36,7 @@ class SchoolUpdateMail extends Mailable implements ShouldQueue
 
         return new Content(view: 'emails.school-update', with: [
             'schoolName' => $settings->school_name,
-            'logoUrl' => $settings->logo_path ? asset('storage/'.$settings->logo_path) : null,
+            'logoUrl' => $settings->logo_path ? \App\Support\MediaUrl::for($settings->logo_path) : null,
             'address' => $settings->address,
         ]);
     }

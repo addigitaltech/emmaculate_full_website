@@ -18,7 +18,7 @@
             <div class="programmes">
                 @forelse($programmes as $programme)
                 @php
-                    $programmeImage = $programme->image?->url() ?? ($programme->image_path ? asset('storage/'.$programme->image_path) : null);
+                    $programmeImage = $programme->image?->url() ?? ($programme->image_path ? \App\Support\MediaUrl::for($programme->image_path) : null);
                 @endphp
                 <article class="programme programme--tall">
                     @if($programmeImage)<div class="programme__img"><img src="{{ $programmeImage }}" alt="{{ $programme->image?->alt_text ?: $programme->title }}" loading="lazy" decoding="async"></div>@endif

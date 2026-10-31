@@ -33,9 +33,9 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(\App\Filament\Pages\Auth\Login::class)
             ->brandName(fn () => SchoolSettings::current()->school_name.' admin')
-            ->brandLogo(fn () => ($path = SchoolSettings::current()->logo_path) ? asset('storage/'.$path) : null)
+            ->brandLogo(fn () => ($path = SchoolSettings::current()->logo_path) ? \App\Support\MediaUrl::for($path) : null)
             ->brandLogoHeight('2.6rem')
-            ->favicon(fn () => ($path = SchoolSettings::current()->favicon_path) ? asset('storage/'.$path) : null)
+            ->favicon(fn () => ($path = SchoolSettings::current()->favicon_path) ? \App\Support\MediaUrl::for($path) : null)
             ->colors([
                 'primary' => Color::Red,
                 'info' => Color::Blue,

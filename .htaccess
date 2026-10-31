@@ -1,0 +1,15 @@
+# Used when this project folder itself is the website folder (XAMPP, or hosting where the document root cannot be
+# changed). It keeps every internal folder private and sends visitors to the "public" folder.
+# If your host lets you set the document root to the "public" folder, do that instead (it is a little safer and faster).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Never serve project internals, whatever the address.
+    RewriteRule ^(\.env|\.git|\.github|vendor|storage|bootstrap|app|config|database|routes|tests|docker|deploy|docs|node_modules|resources)(/|$) - [F,L,NC]
+    RewriteRule ^(composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml|Dockerfile|README\.md|\.env.*)$ - [F,L,NC]
+
+    # Everything else is handled by the public folder.
+    RewriteRule ^(?!public/)(.*)$ public/$1 [L]
+</IfModule>
+
+Options -Indexes

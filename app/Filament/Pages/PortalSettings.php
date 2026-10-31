@@ -40,6 +40,11 @@ class PortalSettings extends Page implements HasForms
             'admission_portal_enabled' => (bool) $s->admission_portal_enabled,
             'public_result_check_enabled' => (bool) $s->public_result_check_enabled,
             'payment_gate_results' => (bool) $s->payment_gate_results,
+            'payment_mode' => $s->payment_mode === 'full' ? 'full' : 'installment',
+            'installment_min_amount' => (float) $s->installment_min_amount,
+            'finance_notify_emails' => $s->finance_notify_emails,
+            'finance_notify_phones' => $s->finance_notify_phones,
+            'sms_payer' => (bool) $s->sms_payer,
             'require_pin_student_login' => (bool) $s->require_pin_student_login,
             'require_pin_result_check' => (bool) $s->require_pin_result_check,
             'show_admin_link' => (bool) $s->show_admin_link,
@@ -67,6 +72,18 @@ class PortalSettings extends Page implements HasForms
                     ->helperText('On: students must also type the 6-digit PIN from their PIN slip. Off: Student ID and surname are enough. Issue PIN slips first (Students > Issue PIN slips), then switch this on.'),
                 Forms\Components\Toggle::make('require_pin_result_check')->label('Require PIN to check results (Check Result page)')
                     ->helperText('On: the public Check Result page also asks for the student’s 6-digit PIN. Off: Student ID and surname are enough.'),
+                Forms\Components\Select::make('payment_mode')->label('How can fees be paid?')->options([
+                    'installment' => 'Installments allowed (pay any amount from the minimum up to the balance)',
+                    'full' => 'Full payment only (all of a student\'s unpaid fees are added together and paid at once)',
+                ])->required()->native(false),
+                Forms\Components\TextInput::make('installment_min_amount')->label('Smallest installment (naira)')->numeric()->minValue(0)->maxValue(100000000)->required()
+                    ->helperText('Used when installments are allowed. If a balance is smaller than this, the balance can be paid.'),
+                Forms\Components\Textarea::make('finance_notify_emails')->label('Email these people when a payment is made')->rows(2)->maxLength(500)
+                    ->helperText('Separate addresses with commas. Leave empty to use the school email. Finance Admin users are always included.'),
+                Forms\Components\Textarea::make('finance_notify_phones')->label('Text these phone numbers when a payment is made')->rows(2)->maxLength(300)
+                    ->helperText('Separate numbers with commas, e.g. 08031234567. Needs SMS to be set up (docs/PAYMENTS.md). Leave empty to use the school phone.'),
+                Forms\Components\Toggle::make('sms_payer')->label('Also text the parent a confirmation')
+                    ->helperText('Sends to the parent phone numbers on file. Needs SMS to be set up.'),
                 Forms\Components\Toggle::make('payment_gate_results')->label('Hold results until school fees are paid')
                     ->helperText('On: a student with unpaid fees cannot open results.'),
             ])->columns(2)->visible(fn (): bool => (bool) auth()->user()?->hasRole('Super Admin')),
@@ -113,6 +130,11 @@ class PortalSettings extends Page implements HasForms
             'admission_portal_enabled' => (bool) ($d['admission_portal_enabled'] ?? false),
             'public_result_check_enabled' => (bool) ($d['public_result_check_enabled'] ?? false),
             'payment_gate_results' => (bool) ($d['payment_gate_results'] ?? false),
+            'payment_mode' => ($d['payment_mode'] ?? 'installment') === 'full' ? 'full' : 'installment',
+            'installment_min_amount' => max(0, min(100000000, (float) ($d['installment_min_amount'] ?? 1000))),
+            'finance_notify_emails' => self::cleanList($d['finance_notify_emails'] ?? null, fn ($item) => filter_var($item, FILTER_VALIDATE_EMAIL) ? strtolower($item) : null),
+            'finance_notify_phones' => self::cleanList($d['finance_notify_phones'] ?? null, fn ($item) => \App\Domain\Notifications\SmsService::normalise($item) ? preg_replace('/[^\d+]/', '', $item) : null),
+            'sms_payer' => (bool) ($d['sms_payer'] ?? false),
             'require_pin_student_login' => (bool) ($d['require_pin_student_login'] ?? false),
             'require_pin_result_check' => (bool) ($d['require_pin_result_check'] ?? false),
             'show_admin_link' => (bool) ($d['show_admin_link'] ?? false),
@@ -121,5 +143,14 @@ class PortalSettings extends Page implements HasForms
         SchoolSettings::query()->orderBy('id')->firstOrFail()->fill($fields)->save();
 
         Notification::make()->success()->title('Saved.')->send();
+    }
+
+    /** Keep only the valid items of a comma-separated list (emails or phone numbers) typed by the administrator. */
+    private static function cleanList(?string $value, callable $accept): ?string
+    {
+        $items = collect(preg_split('/[\s,;]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY) ?: [])
+            ->map(fn ($item) => $accept(trim($item)))->filter()->unique()->values();
+
+        return $items->isEmpty() ? null : $items->implode(', ');
     }
 }

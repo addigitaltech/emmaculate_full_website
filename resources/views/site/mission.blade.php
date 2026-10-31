@@ -29,7 +29,7 @@
                         @foreach($pledge as $line)<li><span class="tick-list__dot"><x-site-icon name="check" /></span><span>{{ $line }}</span></li>@endforeach
                     </ul>
                 </div>
-                <div class="duo__photo"><img src="{{ asset('storage/migrated-images/textbooks.jpg') }}" alt="Students of {{ $settings->school_name }}" loading="lazy" decoding="async"></div>
+                <div class="duo__photo"><img src="{{ \App\Support\MediaUrl::for('migrated-images/textbooks.jpg') }}" alt="Students of {{ $settings->school_name }}" loading="lazy" decoding="async"></div>
             </article>
             @endif
             @if(count($anthem))
@@ -40,7 +40,7 @@
                         @foreach($anthem as $line)<li>{{ $line }}</li>@endforeach
                     </ul>
                 </div>
-                <div class="duo__photo"><img src="{{ asset('storage/migrated-images/students-reading.jpg') }}" alt="Students of {{ $settings->school_name }} reading together" loading="lazy" decoding="async"></div>
+                <div class="duo__photo"><img src="{{ \App\Support\MediaUrl::for('migrated-images/students-reading.jpg') }}" alt="Students of {{ $settings->school_name }} reading together" loading="lazy" decoding="async"></div>
             </article>
             @endif
         </div>

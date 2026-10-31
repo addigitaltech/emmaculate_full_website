@@ -35,3 +35,11 @@ Point your domain's nameservers to Cloudflare (free plan). It hides the server a
 - Give each person their own login; never share the Super Admin login. Remove accounts of people who leave.
 - Keep the PIN slips private; reissue a PIN if one is lost.
 - Back up the database and files regularly and keep a copy off the server.
+
+## Update 10 hardening
+- Requests that only bots make (WordPress, phpMyAdmin, `.env`, `.git`, script files, directory tricks, huge addresses) are dropped before the application runs, and every visitor address has a generous rate limit.
+- The contact and admission forms use the same Cloudflare check as the sign-ins (plus a hidden-field trap).
+- `.htaccess` rules block hidden files, secrets, logs and backups, and uploaded files can never run as programs.
+- **Settings > Security check** tells you, in plain words, which important settings still need attention.
+- Package vulnerabilities are checked every week (`.github/workflows/security.yml`) and Dependabot proposes fixes.
+- Strongly recommended on top of this: Cloudflare in front of the site with its free web application firewall and "Bot Fight Mode" on, two-person rule for the Super Admin login, and off-server backups.

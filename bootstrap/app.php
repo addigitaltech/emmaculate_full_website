@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsurePermission::class,
             'portal.enabled' => EnsurePortalEnabled::class,
         ]);
+        $middleware->prepend(\App\Http\Middleware\BlockProbingRequests::class);
+        $middleware->web(prepend: [\App\Http\Middleware\ConfigureMediaUrl::class]);
+        $middleware->web(append: ['throttle:site']);
         $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

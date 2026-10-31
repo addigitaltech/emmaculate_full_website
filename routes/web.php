@@ -32,6 +32,8 @@ Route::get('/contact', [SiteController::class, 'contact'])->name('contact');
 Route::post('/contact', [SiteController::class, 'storeContact'])->middleware('throttle:contact')->name('contact.send');
 Route::post('/newsletter', [SiteController::class, 'subscribeNewsletter'])->middleware('throttle:contact')->name('newsletter.subscribe');
 Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->name('payments.return');
+// Uploaded pictures when the public/storage link is not available (XAMPP and some cheap hosts).
+Route::get('/media/{path}', [\App\Http\Controllers\MediaController::class, 'show'])->where('path', '.*')->middleware('throttle:600,1')->name('media.show');
 
 Route::get('/portal', [PortalController::class, 'index'])->name('portal');
 Route::get('/designed-by', [SiteController::class, 'credit'])->name('credit');
@@ -77,6 +79,9 @@ Route::middleware(['auth', 'portal.enabled'])->group(function (): void {
         Route::get('/results/subject/{assignment}', [StaffResultsController::class, 'subjectSheet'])->whereNumber('assignment')->name('results.subject');
         Route::post('/results/subject/{assignment}', [StaffResultsController::class, 'saveSubjectSheet'])->whereNumber('assignment')->name('results.subject.save');
     });
+    Route::get('/portal/receipts/{receipt}', [\App\Http\Controllers\ReceiptController::class, 'show'])->name('receipts.show');
+    Route::get('/portal/finance/report', [\App\Http\Controllers\FinanceReportController::class, 'show'])->middleware('permission:manage payments')->name('finance.report');
+    Route::get('/finance/history', fn () => redirect(\App\Filament\Pages\PaymentHistory::getUrl()))->middleware('permission:manage payments')->name('finance.history');
     Route::post('/portal/fees/{assignment}/checkout/{gateway}', [PaymentController::class, 'checkout'])->where('gateway', 'paystack|flutterwave|moniepoint')->middleware('throttle:payment-initiation')->name('payments.checkout');
 });
 
