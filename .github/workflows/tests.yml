@@ -42,7 +42,7 @@ jobs:
           extensions: mbstring, intl, gd, zip, bcmath, exif, fileinfo, dom, xml, curl, pdo_sqlite, pdo_mysql, pdo_pgsql
           tools: composer:v2
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: npm
