@@ -104,6 +104,8 @@ class AppServiceProvider extends ServiceProvider
             });
             $view->with([
                 'portalLinks' => $portalLinks,
+                'navigation' => NavigationItem::query()->where('menu', 'main')->whereNull('parent_id')->where('is_visible', true)->with('children')->orderBy('sort_order')->get(),
+                'footerSections' => FooterSection::query()->where('is_visible', true)->orderBy('sort_order')->get(),
                 'socialLinks' => $social,
                 'whatsappUrl' => strlen($digits) >= 10 ? 'https://wa.me/'.$digits : null,
                 'currentPath' => trim(request()->path(), '/'),
