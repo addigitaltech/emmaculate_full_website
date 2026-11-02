@@ -73,9 +73,9 @@ class PortalController extends Controller
             $kind = 'parent';
             $profile = $user->parentProfile()->with(['students.schoolClass', 'students.arm'])->first();
             $children = ($profile?->students ?? collect())->where('status', 'active')->values();
-            $ids = $children->modelKeys();
+            $ids = $children->pluck('id')->all();
             // Fees and payment history stay visible after a child graduates, so any balance can still be settled.
-            $feeIds = ($profile?->students ?? collect())->modelKeys();
+            $feeIds = ($profile?->students ?? collect())->pluck('id')->all();
             $childTerms = $this->termsWithPublishedResults($ids);
             $results = Result::published()->whereIn('student_id', $ids)->with(['student', 'subject', 'academicSession', 'academicTerm'])->orderByDesc('academic_session_id')->orderByDesc('academic_term_id')->limit(50)->get();
             $fees = StudentFeeAssignment::query()->whereIn('student_id', $feeIds)->whereIn('status', ['unpaid', 'overdue', 'partial'])->with(['student', 'feeType'])->orderBy('due_date')->limit(100)->get();
