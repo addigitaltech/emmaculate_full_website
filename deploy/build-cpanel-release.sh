@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds a ready-to-upload release zip for cPanel hosting.
-# Run it on a computer (or Termux) that has PHP 8.3+, Composer and Node 20+.
-# The server then needs no Composer or Node, which shared hosting often cannot run.
+# Build a ready-to-upload production ZIP for cPanel hosting.
+# Run on a computer with PHP 8.3+, Composer 2, Node 20+ and zip.
+# The server then needs no Composer or Node.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -13,10 +13,32 @@ composer install --no-dev --optimize-autoloader --classmap-authoritative --no-in
 npm ci
 npm run build
 
-OUT="release-$(date +%Y%m%d-%H%M).zip"
+test -f public/build/manifest.json || { echo "Missing Vite production manifest" >&2; exit 1; }
+test -f vendor/autoload.php || { echo "Missing Composer autoloader" >&2; exit 1; }
+
+OUT="emmaculate-cpanel-release-$(date +%Y%m%d-%H%M).zip"
 rm -f "$OUT"
 zip -qr "$OUT" . \
-  -x ".git/*" "node_modules/*" "tests/*" ".env" "storage/logs/*" "storage/framework/cache/*" \
+  -x ".git/*" "node_modules/*" "tests/*" ".env" \
+     "storage/logs/*" "storage/framework/cache/*" \
      "storage/framework/sessions/*" "storage/framework/views/*" "release-*.zip" ".github/*" \
+     "emmaculate-cpanel-release-*.zip" ".phpunit.result.cache" "phpunit.xml" ".github/*" \
      "docker/*" "Dockerfile" ".dockerignore"
-echo "Created $OUT. Upload it to the server and follow docs/CPANEL_DEPLOYMENT.md"
+
+# Keep Laravel's writable directory placeholders; the wildcard exclusions above
+# intentionally remove local cache, sessions, views and logs.
+for placeholder in \
+  storage/framework/cache/.gitignore \
+  storage/framework/cache/data/.gitignore \
+  storage/framework/sessions/.gitignore \
+  storage/framework/views/.gitignore \
+  storage/logs/.gitignore; do
+  [ -f "$placeholder" ] && zip -q "$OUT" "$placeholder"
+done
+
+if unzip -l "$OUT" | grep -E '(^|/)(\.env$|\.git/|tests/|node_modules/)' >/dev/null; then
+  echo "Release contains a forbidden secret or development file" >&2
+  exit 1
+fi
+
+echo "Created $OUT. Upload it outside public_html and follow docs/CPANEL_DEPLOYMENT.md"

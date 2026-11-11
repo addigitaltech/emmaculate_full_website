@@ -71,6 +71,62 @@ class SiteController extends Controller
         ]);
     }
 
+    public function search(Request $request): View
+    {
+        $query = Str::limit(trim((string) $request->query('q', '')), 100, '');
+        $results = collect();
+
+        if (mb_strlen($query) >= 2) {
+            $like = '%'.addcslashes($query, '%_\\').'%';
+
+            foreach (CmsPage::published()->where(function ($builder) use ($like): void {
+                $builder->where('title', 'like', $like)->orWhere('excerpt', 'like', $like)->orWhere('content', 'like', $like);
+            })->orderBy('title')->limit(20)->get() as $page) {
+                $results->push(['title' => $page->title, 'type' => 'Page', 'excerpt' => Str::limit(strip_tags((string) ($page->excerpt ?: $page->content)), 180), 'url' => $this->publicPageUrl($page->slug), 'date' => $page->published_at]);
+            }
+
+            foreach (NewsPost::published()->where(function ($builder) use ($like): void {
+                $builder->where('title', 'like', $like)->orWhere('subtitle', 'like', $like)->orWhere('excerpt', 'like', $like)->orWhere('content', 'like', $like)->orWhere('category', 'like', $like);
+            })->orderByDesc('published_at')->limit(20)->get() as $post) {
+                $results->push(['title' => $post->title, 'type' => 'News', 'excerpt' => Str::limit(strip_tags((string) ($post->excerpt ?: $post->content)), 180), 'url' => route('news.show', $post->slug), 'date' => $post->published_at]);
+            }
+
+            foreach (SchoolEvent::published()->where(function ($builder) use ($like): void {
+                $builder->where('title', 'like', $like)->orWhere('description', 'like', $like)->orWhere('location', 'like', $like);
+            })->orderByDesc('starts_at')->limit(20)->get() as $event) {
+                $results->push(['title' => $event->title, 'type' => 'Event', 'excerpt' => Str::limit(strip_tags((string) $event->description), 180), 'url' => route('events.show', $event->slug), 'date' => $event->starts_at ?: $event->published_at]);
+            }
+
+            foreach (AcademicProgramme::query()->where('is_published', true)->where(function ($builder) use ($like): void {
+                $builder->where('title', 'like', $like)->orWhere('level', 'like', $like)->orWhere('intro', 'like', $like)->orWhere('approach', 'like', $like)->orWhere('curriculum', 'like', $like);
+            })->orderBy('sort_order')->limit(20)->get() as $programme) {
+                $results->push(['title' => $programme->title, 'type' => 'Academic programme', 'excerpt' => Str::limit(strip_tags((string) $programme->intro), 180), 'url' => route('academics.programme', $programme->slug), 'date' => null]);
+            }
+
+            foreach (Faq::query()->where('is_visible', true)->where(function ($builder) use ($like): void {
+                $builder->where('question', 'like', $like)->orWhere('answer', 'like', $like)->orWhere('category', 'like', $like);
+            })->orderBy('sort_order')->limit(20)->get() as $faq) {
+                $results->push(['title' => $faq->question, 'type' => 'Frequently asked question', 'excerpt' => Str::limit(strip_tags((string) $faq->answer), 180), 'url' => route('faq').'#faq-'.$faq->id, 'date' => null]);
+            }
+
+            foreach (Announcement::visibleNow()->where(function ($builder) use ($like): void {
+                $builder->where('title', 'like', $like)->orWhere('body', 'like', $like);
+            })->orderByDesc('starts_at')->limit(20)->get() as $announcement) {
+                $results->push(['title' => $announcement->title, 'type' => 'Announcement', 'excerpt' => Str::limit(strip_tags((string) $announcement->body), 180), 'url' => route('announcements.index'), 'date' => $announcement->starts_at]);
+            }
+
+            $results = $results->sortByDesc(fn (array $result) => $result['date']?->timestamp ?? 0)->values()->take(50);
+        }
+
+        return $this->render('site.search', [
+            'query' => $query,
+            'results' => $results,
+            'heroImage' => $this->heroUrl('page'),
+            'seoTitle' => 'Search',
+            'seoDescription' => 'Search published information on '.$this->settings()->school_name.'.',
+        ]);
+    }
+
     public function about(): View
     {
         $page = CmsPage::published()->with('featuredMedia')->where('slug', 'about')->first();
@@ -441,6 +497,16 @@ class SiteController extends Controller
     private function settings(): SchoolSettings
     {
         return SchoolSettings::current();
+    }
+
+    private function publicPageUrl(string $slug): string
+    {
+        return match ($slug) {
+            'about' => route('about'),
+            'history' => route('history'),
+            'mission-vision' => route('mission'),
+            default => route('pages.show', $slug),
+        };
     }
 
     /**

@@ -8,8 +8,8 @@
         <p class="empty-state">Frequently asked questions will be published here when confirmed by the school. For now, please <a href="{{ route('contact') }}" style="text-decoration:underline">contact us</a>.</p>
     @else
         <div class="card card--pad faq">
-            @foreach($faqs as $faq)
-                <details><summary>{{ $faq->question }} <x-site-icon name="chevron" /></summary><div>@foreach(preg_split('/\R\s*\R/', (string) $faq->answer) as $paragraph)@if(trim($paragraph))<p style="margin:.4rem 0">{{ $paragraph }}</p>@endif @endforeach</div></details>
+                @foreach($faqs as $faq)
+                    <details id="faq-{{ $faq->id }}"><summary>{{ $faq->question }} <x-site-icon name="chevron" /></summary><div>@foreach(preg_split('/\R\s*\R/', (string) $faq->answer) as $paragraph)@if(trim($paragraph))<p style="margin:.4rem 0">{{ $paragraph }}</p>@endif @endforeach</div></details>
             @endforeach
         </div>
     @endif

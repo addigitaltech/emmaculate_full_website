@@ -53,6 +53,7 @@
         </nav>
 
         <div class="header-actions">
+            <a class="search-link" href="{{ route('search') }}" aria-label="Search the website" title="Search the website"><x-site-icon name="search" /></a>
             @if(!empty($portalLinks) && count($portalLinks))
                 <div class="portals-wrap has-dropdown">
                     <button type="button" class="portals-btn" data-dropdown-toggle aria-expanded="false" aria-haspopup="true">Portals <x-site-icon name="chevron" /></button>
@@ -94,6 +95,7 @@
             @endforeach
         </ul>
         <div class="mobile-nav__cta">
+            <a class="btn btn--outline" href="{{ route('search') }}"><x-site-icon name="search" /> Search website</a>
             <a class="btn btn--maroon" href="{{ route('admissions') }}">Admissions</a>
             <a class="btn btn--navy" href="{{ route('login') }}">Portals</a>
         </div>

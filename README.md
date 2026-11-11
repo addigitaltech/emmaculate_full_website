@@ -58,5 +58,7 @@ Keep gateway keys only in the deployment environment (`.env` or the host's varia
 ## Going live checklist
 `APP_ENV=production`, `APP_DEBUG=false`, real `APP_URL` (https), strong unique `APP_KEY`, mail configured, Turnstile keys set, demo content removed, backups scheduled, Cloudflare in front. Details: [docs/PERFORMANCE.md](docs/PERFORMANCE.md) and [docs/SECURITY.md](docs/SECURITY.md).
 
-## More documents
-`docs/ADMIN_GUIDE.md` (where to change things), `docs/EMAIL_SETUP.md`, `docs/TRAFFIC_PLAN_CPANEL.md`, `docs/CBT_INTEGRATION_PLAN.md` (connecting a CBT/exam website), `docs/CHANGES_UPDATE_*.md` (what each update changed).
+## Production documents
+For a live cPanel installation, start with [`docs/CPANEL_DEPLOYMENT.md`](docs/CPANEL_DEPLOYMENT.md), then follow the operator workflow in [`docs/SUPER_ADMIN_SETUP_GUIDE.md`](docs/SUPER_ADMIN_SETUP_GUIDE.md). The student import columns and a valid two-row example are in [`docs/CSV_STUDENT_IMPORT_FORMAT.md`](docs/CSV_STUDENT_IMPORT_FORMAT.md) and [`docs/student-import-example.csv`](docs/student-import-example.csv).
+
+Other references: `docs/ADMIN_GUIDE.md` (admin menu summary), `docs/PAYMENTS.md`, `docs/EMAIL_SETUP.md`, `docs/SECURITY.md`, `docs/TRAFFIC_PLAN_CPANEL.md`, and `docs/CBT_INTEGRATION_PLAN.md` (connecting a CBT/exam website).

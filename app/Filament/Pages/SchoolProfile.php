@@ -45,7 +45,7 @@ class SchoolProfile extends Page implements HasForms
         }
 
         $this->form->fill([
-            'school_name' => $s->school_name, 'short_name' => $s->short_name, 'motto' => $s->motto, 'description' => $s->description,
+            'school_name' => $s->school_name, 'short_name' => $s->short_name, 'student_id_prefix' => $s->student_id_prefix, 'motto' => $s->motto, 'description' => $s->description,
             'logo_path' => $s->logo_path, 'favicon_path' => $s->favicon_path,
             'address' => $s->address, 'phone_primary' => $s->phone_primary, 'phone_secondary' => $s->phone_secondary,
             'email' => $s->email, 'whatsapp' => $s->whatsapp, 'office_hours' => $s->office_hours, 'gps_location' => $s->gps_location,
@@ -66,6 +66,9 @@ class SchoolProfile extends Page implements HasForms
                     Forms\Components\Tabs\Tab::make('School details')->icon('heroicon-o-building-office-2')->schema([
                         Forms\Components\TextInput::make('school_name')->label('School name')->required()->maxLength(160),
                         Forms\Components\TextInput::make('short_name')->label('Short name (used in page titles)')->required()->maxLength(80),
+                        Forms\Components\TextInput::make('student_id_prefix')->label('Student ID prefix')->required()->maxLength(12)->alphaNum()
+                            ->dehydrateStateUsing(fn ($state) => strtoupper((string) $state))
+                            ->helperText('Starts every new Student ID, e.g. EAC gives EAC/2627/0001. Changing it only affects students added afterwards.'),
                         Forms\Components\TextInput::make('motto')->label('Motto')->maxLength(180),
                         Forms\Components\Textarea::make('description')->label('Short description of the school')->rows(3)->maxLength(400)->columnSpanFull(),
                         MediaField::path('logo_path', 'School logo'),
@@ -145,6 +148,7 @@ class SchoolProfile extends Page implements HasForms
         try {
             $s->fill([
                 'school_name' => trim((string) $d['school_name']), 'short_name' => trim((string) $d['short_name']),
+                'student_id_prefix' => strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) ($d['student_id_prefix'] ?? 'EAC'))),
                 'motto' => $clean($d['motto'] ?? null), 'description' => $clean($d['description'] ?? null),
                 'logo_path' => $clean($d['logo_path'] ?? null), 'favicon_path' => $clean($d['favicon_path'] ?? null),
                 'address' => $clean($d['address'] ?? null), 'phone_primary' => $clean($d['phone_primary'] ?? null), 'phone_secondary' => $clean($d['phone_secondary'] ?? null),
