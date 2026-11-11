@@ -31,6 +31,7 @@ Route::get('/faq', [SiteController::class, 'faq'])->name('faq');
 Route::get('/contact', [SiteController::class, 'contact'])->name('contact');
 Route::post('/contact', [SiteController::class, 'storeContact'])->middleware('throttle:contact')->name('contact.send');
 Route::post('/newsletter', [SiteController::class, 'subscribeNewsletter'])->middleware('throttle:contact')->name('newsletter.subscribe');
+Route::get('/search', [SiteController::class, 'search'])->name('search');
 Route::get('/payments/return', [PaymentController::class, 'providerReturn'])->name('payments.return');
 // Uploaded pictures when the public/storage link is not available (XAMPP and some cheap hosts).
 Route::get('/media/{path}', [\App\Http\Controllers\MediaController::class, 'show'])->where('path', '.*')->middleware('throttle:600,1')->name('media.show');
@@ -59,6 +60,7 @@ Route::middleware('guest')->group(function (): void {
 });
 Route::middleware(['auth', 'portal.enabled'])->group(function (): void {
     Route::get('/portal/dashboard', [PortalController::class, 'dashboard'])->name('portal.dashboard');
+    Route::get('/portal/search', [PortalController::class, 'search'])->name('portal.search');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/portal/account/password', [\App\Http\Controllers\AccountPasswordController::class, 'edit'])->name('account.password');
     Route::post('/portal/account/password', [\App\Http\Controllers\AccountPasswordController::class, 'update'])->middleware('throttle:auth')->name('account.password.update');

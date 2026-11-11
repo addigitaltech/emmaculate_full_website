@@ -29,5 +29,51 @@ Pick **dates** or a **whole session** (and optionally a class or arm, or search 
   ```
   Then list the phone numbers to text in Portal switches (Nigerian numbers such as 08031234567). Never put the key in chat, code or GitHub.
 
+## Payment gateway webhook configuration
+
+Both gateways use public HTTPS POST endpoints. Replace `YOUR-DOMAIN` with the final school domain and register the exact URL in the provider's merchant dashboard:
+
+| Gateway | Webhook endpoint | Required authentication setting |
+|---|---|---|
+| Paystack | `https://YOUR-DOMAIN/api/webhooks/payments/paystack` | Paystack sends `x-paystack-signature`; Laravel verifies an HMAC-SHA512 signature using `PAYSTACK_SECRET_KEY`. |
+| Flutterwave | `https://YOUR-DOMAIN/api/webhooks/payments/flutterwave` | Flutterwave sends `verif-hash`; it must equal `FLUTTERWAVE_SECRET_HASH`. |
+
+The matching server configuration is:
+
+```dotenv
+PAYSTACK_SECRET_KEY=your-private-secret
+PAYSTACK_BASE_URL=https://api.paystack.co
+
+FLUTTERWAVE_SECRET_KEY=your-secret-key
+FLUTTERWAVE_SECRET_HASH=your-webhook-secret-hash
+FLUTTERWAVE_PUBLIC_KEY=your-public-key
+FLUTTERWAVE_BASE_URL=https://api.flutterwave.com/v3
+```
+
+`PAYSTACK_SECRET_KEY`, `FLUTTERWAVE_SECRET_KEY` and `FLUTTERWAVE_SECRET_HASH` must be set before the corresponding gateway can verify payments. The public key is retained for frontend integrations, while the current checkout flow uses the server-side secret key and provider redirect.
+
+The webhook endpoint does not use a logged-in session or CSRF token. It must remain reachable with a direct POST request and must not be protected by Basic Auth, a login redirect, a cache rule or a maintenance page. It is rate-limited to 120 requests per minute per source IP.
+
+Paystack `charge.success` and Flutterwave successful `charge.completed` events are verified again through the provider API before fees are marked paid. Invalid signatures are rejected with HTTP 401. Temporary processing failures return HTTP 500 so the provider can retry. Repeated delivery of an already processed event is acknowledged without creating another receipt or settling the fee twice. The event status is stored in `payment_events` for audit and troubleshooting.
+
+After editing the production `.env`, refresh Laravel's cached configuration:
+
+```bash
+php artisan optimize:clear
+php artisan config:cache
+```
+
+### Safe webhook test
+
+Use provider test mode before live mode. Create one disposable fee assignment, complete one test checkout, then confirm all of the following:
+
+1. The provider delivery log shows the exact endpoint and a successful HTTP response.
+2. The local transaction is `successful` only after provider verification.
+3. The fee balance and receipt are correct.
+4. The matching `payment_events` row is `processed`.
+5. Replaying the same event does not create another receipt or change the fee a second time.
+
+The repository regression suite for this behavior is `tests/Feature/PaymentWebhookTest.php`. Never expose provider secrets in chat, screenshots, source control or URLs.
+
 ## Safety built in
-Only a plain naira amount is accepted, the fee and balance come from the database (never from the browser), one payment at a time per student, amounts are capped, names sent to the provider are cleaned, provider addresses are checked, webhooks are signature-checked, and every change is in the activity log.
+Only a plain naira amount is accepted, the fee and balance come from the database (never from the browser), one payment at a time per student, amounts are capped, names sent to the provider are cleaned, provider addresses are checked, webhooks are signature-checked, duplicate events are idempotent, and every change is in the activity log.

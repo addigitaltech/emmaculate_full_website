@@ -11,6 +11,7 @@ use App\Models\PaymentTransaction;
 use App\Models\PortalLink;
 use App\Models\Result;
 use App\Models\SchoolSettings;
+use App\Models\Student;
 use App\Models\StudentFeeAssignment;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,6 +33,63 @@ class PortalController extends Controller
     {
         abort_unless($request->user(), 401);
         return view('portal.dashboard', $this->layoutData() + $this->dashboardData($request));
+    }
+
+    public function search(Request $request): View
+    {
+        $query = \Illuminate\Support\Str::limit(trim((string) $request->query('q', '')), 100, '');
+        $results = collect();
+        $user = $request->user();
+
+        if (mb_strlen($query) >= 2) {
+            $like = '%'.addcslashes($query, '%_\\').'%';
+            $studentIds = collect();
+
+            if ($user->hasRole('Student')) {
+                $studentIds = collect([$user->studentProfile?->id])->filter();
+            } elseif ($user->hasRole('Parent')) {
+                $studentIds = $user->parentProfile?->students()->pluck('students.id') ?? collect();
+            } elseif ($user->hasRole('Teacher')) {
+                $teacher = $user->teacherProfile;
+                $assignments = $teacher?->assignments()->get() ?? collect();
+                foreach ($assignments->groupBy('school_class_id') as $classId => $classAssignments) {
+                    $armIds = $classAssignments->pluck('arm_id')->filter()->unique()->values();
+                    $studentIds = $studentIds->merge(Student::query()->where('school_class_id', $classId)->when($armIds->isNotEmpty(), fn ($q) => $q->whereIn('arm_id', $armIds))->pluck('id'));
+                }
+            }
+
+            $studentIds = $studentIds->map(fn ($id) => (int) $id)->unique()->values();
+            foreach (Student::query()->whereIn('id', $studentIds)->where(function ($builder) use ($like): void {
+                $builder->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like)->orWhere('other_names', 'like', $like)->orWhere('student_number', 'like', $like);
+            })->with('schoolClass')->limit(30)->get() as $student) {
+                $results->push(['title' => $student->fullName(), 'type' => 'Student', 'excerpt' => trim($student->student_number.' · '.($student->schoolClass?->name ?? 'Class not assigned')), 'url' => route('portal.dashboard')]);
+            }
+
+            foreach (Result::published()->whereIn('student_id', $studentIds)->where(function ($builder) use ($like): void {
+                $builder->whereHas('subject', fn ($q) => $q->where('name', 'like', $like)->orWhere('code', 'like', $like))
+                    ->orWhereHas('academicTerm', fn ($q) => $q->where('name', 'like', $like))
+                    ->orWhereHas('academicSession', fn ($q) => $q->where('name', 'like', $like))
+                    ->orWhere('grade', 'like', $like)->orWhere('remark', 'like', $like);
+            })->with(['student', 'subject', 'academicTerm', 'academicSession'])->limit(30)->get() as $result) {
+                $results->push(['title' => ($result->subject?->name ?? 'Result').' · '.$result->student?->fullName(), 'type' => 'Published result', 'excerpt' => trim(($result->academicSession?->name ?? '').' · '.($result->academicTerm?->name ?? '').' · Grade '.($result->grade ?? '—')), 'url' => route('portal.dashboard')]);
+            }
+
+            foreach (StudentFeeAssignment::query()->whereIn('student_id', $studentIds)->where(function ($builder) use ($like): void {
+                $builder->whereHas('feeType', fn ($q) => $q->where('name', 'like', $like))->orWhere('description', 'like', $like)->orWhere('status', 'like', $like);
+            })->with(['student', 'feeType'])->limit(30)->get() as $fee) {
+                $results->push(['title' => ($fee->feeType?->name ?? 'Fee').' · '.$fee->student?->fullName(), 'type' => 'Fee', 'excerpt' => ucfirst((string) $fee->status).' · NGN '.number_format((float) $fee->amount_due, 2), 'url' => route('portal.dashboard')]);
+            }
+
+            if ($user->hasRole('Teacher')) {
+                foreach (($user->teacherProfile?->assignments()->with(['schoolClass', 'arm', 'subject'])->get() ?? collect())->filter(fn ($assignment) => str_contains(mb_strtolower(($assignment->schoolClass?->name ?? '').' '.($assignment->arm?->name ?? '').' '.($assignment->subject?->name ?? '')), mb_strtolower($query))) as $assignment) {
+                    $results->push(['title' => $assignment->subject?->name ?? 'Subject assignment', 'type' => 'Teaching assignment', 'excerpt' => trim(($assignment->schoolClass?->name ?? '').($assignment->arm ? ' · '.$assignment->arm->name : '')), 'url' => route('staff.results')]);
+                }
+            }
+
+            $results = $results->unique(fn (array $result) => $result['type'].'|'.$result['title'].'|'.$result['excerpt'])->values()->take(50);
+        }
+
+        return view('portal.search', $this->layoutData() + ['user' => $user, 'query' => $query, 'results' => $results]);
     }
 
     private function layoutData(): array

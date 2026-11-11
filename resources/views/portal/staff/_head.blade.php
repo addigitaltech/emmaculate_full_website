@@ -5,6 +5,7 @@
             @if(!empty($subtitle))<p>{{ $subtitle }}</p>@endif
         </div>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            <a class="btn btn--ghost-light" href="{{ route('portal.search') }}">Search portal</a>
             @if(auth()->user()->can('manage students') || auth()->user()->can('manage results') || auth()->user()->can('manage website content'))<a class="btn btn--ghost-light" href="{{ url('/admin') }}">Admin console</a>@endif
             <form method="post" action="{{ route('logout') }}">@csrf<button type="submit" class="btn btn--ghost-light">Sign out</button></form>
         </div>

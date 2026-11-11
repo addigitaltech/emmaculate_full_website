@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 abstract class AuthorizedResource extends Resource
 {
@@ -62,5 +64,55 @@ abstract class AuthorizedResource extends Resource
         }
         $permission = static::$requiredPermission;
         return $permission !== null && $user->can($permission);
+    }
+
+    /**
+     * Make every authorized resource available from Filament's top-level search.
+     * Sensitive credential, token and opaque JSON columns are deliberately excluded.
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        static $columns = [];
+        $key = static::class;
+
+        if (! isset($columns[$key])) {
+            $excluded = [
+                'password', 'password_reset_token', 'remember_token', 'pin_hash', 'pin',
+                'secret', 'secret_key', 'secret_hash', 'api_key', 'token', 'payload',
+                'metadata', 'content_blocks', 'theme_tokens', 'global_settings',
+            ];
+            $table = (new (static::getModel()))->getTable();
+            $searchableTypes = ['string', 'text', 'mediumText', 'longText', 'date', 'datetime', 'timestamp', 'time', 'enum'];
+            $columns[$key] = array_values(array_filter(
+                Schema::getColumnListing($table),
+                fn (string $column): bool => ! in_array(Str::lower($column), $excluded, true)
+                    && in_array(Schema::getColumnType($table, $column), $searchableTypes, true),
+            ));
+        }
+
+        return $columns[$key];
+    }
+
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        foreach (['title', 'name', 'label', 'full_name', 'question', 'student_number', 'email', 'reference', 'receipt_number', 'code'] as $column) {
+            if (filled($record->getAttribute($column))) {
+                return (string) $record->getAttribute($column);
+            }
+        }
+
+        return class_basename($record).' #'.$record->getKey();
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        $details = [];
+        foreach (['status', 'category', 'school_name', 'short_name', 'first_name', 'last_name', 'student_number', 'email'] as $column) {
+            if (filled($record->getAttribute($column))) {
+                $details[Str::headline($column)] = (string) $record->getAttribute($column);
+            }
+        }
+
+        return $details;
     }
 }
