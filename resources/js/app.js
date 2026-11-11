@@ -12,6 +12,40 @@ document.addEventListener('click', (event) => {
     if (button) window.print();
 });
 
+function initHeaderSearch() {
+    const search = document.querySelector('[data-header-search]');
+    if (!search) return;
+
+    const panel = search.querySelector('.header-search__panel');
+    const input = search.querySelector('[data-search-input]');
+    if (!panel || !input) return;
+
+    const setOpen = (open) => {
+        search.classList.toggle('is-open', open);
+        panel.hidden = !open;
+        search.querySelectorAll('[data-search-toggle]').forEach((toggle) => {
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.setAttribute('aria-label', open ? 'Close website search' : 'Open website search');
+        });
+        if (open) window.requestAnimationFrame(() => input.focus());
+    };
+
+    document.querySelectorAll('[data-search-toggle]').forEach((toggle) => {
+        toggle.addEventListener('click', () => setOpen(!search.classList.contains('is-open')));
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setOpen(false);
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!search.contains(event.target)) setOpen(false);
+    });
+}
+
 function initLiveSearch() {
     document.querySelectorAll('[data-live-search]').forEach((form) => {
         const input = form.querySelector('input[type="search"]');
@@ -93,8 +127,9 @@ function initLiveSearch() {
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initSite(); initLiveSearch(); });
+    document.addEventListener('DOMContentLoaded', () => { initSite(); initHeaderSearch(); initLiveSearch(); });
 } else {
     initSite();
+    initHeaderSearch();
     initLiveSearch();
 }

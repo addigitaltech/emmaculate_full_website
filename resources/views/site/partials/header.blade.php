@@ -53,7 +53,16 @@
         </nav>
 
         <div class="header-actions">
-            <a class="search-link" href="{{ route('search') }}" aria-label="Search the website" title="Search the website"><x-site-icon name="search" /></a>
+            <div class="header-search" data-header-search>
+                <button type="button" class="search-link" data-search-toggle aria-expanded="false" aria-controls="header-search-panel" aria-label="Open website search" title="Search the website"><x-site-icon name="search" /></button>
+                <div id="header-search-panel" class="header-search__panel" hidden>
+                    <form class="header-search__form" data-live-search action="{{ route('search') }}" method="get" role="search">
+                        <label class="sr-only" for="header-search-input">Search the website</label>
+                        <input id="header-search-input" class="header-search__input" type="search" name="q" placeholder="Search the website…" autocomplete="off" minlength="2" data-search-input>
+                        <div class="header-search__results" data-live-search-results role="listbox" aria-label="Search suggestions" hidden></div>
+                    </form>
+                </div>
+            </div>
             @if(!empty($portalLinks) && count($portalLinks))
                 <div class="portals-wrap has-dropdown">
                     <button type="button" class="portals-btn" data-dropdown-toggle aria-expanded="false" aria-haspopup="true">Portals <x-site-icon name="chevron" /></button>
@@ -95,7 +104,7 @@
             @endforeach
         </ul>
         <div class="mobile-nav__cta">
-            <a class="btn btn--outline" href="{{ route('search') }}"><x-site-icon name="search" /> Search website</a>
+            <button class="btn btn--outline" type="button" data-search-toggle><x-site-icon name="search" /> Search website</button>
             <a class="btn btn--maroon" href="{{ route('admissions') }}">Admissions</a>
             <a class="btn btn--navy" href="{{ route('login') }}">Portals</a>
         </div>
