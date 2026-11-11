@@ -126,10 +126,28 @@ function initLiveSearch() {
     });
 }
 
+function initRealtimeSubmitSearch() {
+    document.querySelectorAll('[data-realtime-submit-search]').forEach((form) => {
+        const input = form.querySelector('input[type="search"]');
+        if (!input) return;
+
+        let timer;
+        input.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                form.setAttribute('aria-busy', 'true');
+                if (typeof form.requestSubmit === 'function') form.requestSubmit();
+                else form.submit();
+            }, 280);
+        });
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initSite(); initHeaderSearch(); initLiveSearch(); });
+    document.addEventListener('DOMContentLoaded', () => { initSite(); initHeaderSearch(); initLiveSearch(); initRealtimeSubmitSearch(); });
 } else {
     initSite();
     initHeaderSearch();
     initLiveSearch();
+    initRealtimeSubmitSearch();
 }

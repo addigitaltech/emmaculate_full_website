@@ -7,7 +7,7 @@
     <div class="panel">
         <div class="panel__head">
             <h2>{{ count($students) }} {{ count($students) === 1 ? 'student' : 'students' }}</h2>
-            <form method="get" action="{{ route('staff.results.class') }}" class="toolbar" style="align-items:center">
+            <form method="get" action="{{ route('staff.results.class') }}" class="toolbar" style="align-items:center" data-realtime-submit-search>
                 <input type="hidden" name="class" value="{{ $class->id }}">
                 @if($arm)<input type="hidden" name="arm" value="{{ $arm->id }}">@endif
                 <input type="hidden" name="term" value="{{ $term->id }}">

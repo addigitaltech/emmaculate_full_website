@@ -29,6 +29,13 @@ class StudentResource extends AuthorizedResource
     protected static ?string $navigationGroup = 'Students & staff';
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+
+    /** Keep Student ID and every part of a student's name in the Admin master search. */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['student_number', 'first_name', 'last_name', 'other_names', 'status'];
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
