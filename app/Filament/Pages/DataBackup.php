@@ -33,6 +33,7 @@ class DataBackup extends Page implements HasForms
     {
         return $form->schema([
             Forms\Components\Select::make('term_id')->label('Results to download')->options(['' => 'All academic terms'] + AcademicTerm::query()->with('session')->orderByDesc('academic_session_id')->orderByDesc('sequence')->get()->mapWithKeys(fn ($term) => [$term->id => $term->session?->name.' — '.$term->name])->all())->native(false),
+            Forms\Components\TextInput::make('backup_passphrase')->label('Credentials backup passphrase')->password()->revealable()->minLength(12)->helperText('Required to include and restore existing login passwords. Keep it separate from the ZIP and never email it.'),
             Forms\Components\FileUpload::make('results_zip')->label('Results ZIP to restore')->disk('local')->directory('backup-imports')->visibility('private')->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])->maxSize(102400),
             Forms\Components\FileUpload::make('people_zip')->label('People ZIP to restore')->disk('local')->directory('backup-imports')->visibility('private')->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])->maxSize(102400),
         ])->statePath('data');
@@ -56,7 +57,9 @@ class DataBackup extends Page implements HasForms
 
     public function downloadPeople()
     {
-        abort_unless(static::canAccess(), 403); $path = app(BackupArchiveService::class)->peopleZip();
+        abort_unless(static::canAccess(), 403); $passphrase = trim((string) ($this->data['backup_passphrase'] ?? ''));
+        if (mb_strlen($passphrase) < 12) { Notification::make()->warning()->title('Enter a passphrase of at least 12 characters')->body('The passphrase encrypts the login credential hashes in the download.')->send(); return null; }
+        $path = app(BackupArchiveService::class)->peopleZip($passphrase);
         return response()->streamDownload(function () use ($path): void { readfile($path); @unlink($path); }, 'emmaculate-people-'.now()->format('Ymd-His').'.zip', ['Content-Type' => 'application/zip']);
     }
 
@@ -66,7 +69,7 @@ class DataBackup extends Page implements HasForms
         foreach ([['results_zip', 'results'], ['people_zip', 'people']] as [$key, $label]) {
             $stored = $state[$key] ?? null; if (! $stored) continue;
             $path = Storage::disk('local')->path(is_array($stored) ? (string) reset($stored) : (string) $stored);
-            try { $result = $label === 'results' ? $service->importResults($path) : $service->importPeople($path); $messages[] = ucfirst($label).': '.$result['created'].' created, '.$result['updated'].' updated, '.count($result['errors']).' skipped.'; }
+            try { $result = $label === 'results' ? $service->importResults($path) : $service->importPeople($path, (string) ($state['backup_passphrase'] ?? '')); $messages[] = ucfirst($label).': '.$result['created'].' created, '.$result['updated'].' updated, '.count($result['errors']).' skipped.'; }
             catch (ValidationException $exception) { $messages[] = ucfirst($label).': '.collect($exception->errors())->flatten()->implode(' '); }
             finally { @unlink($path); }
         }

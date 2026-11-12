@@ -46,7 +46,7 @@ final class BackupArchiveService
         return $path;
     }
 
-    public function peopleZip(): string
+    public function peopleZip(?string $passphrase = null): string
     {
         $path = storage_path('app/'.Str::uuid().'-people.zip');
         $zip = $this->zip($path);
@@ -56,6 +56,12 @@ final class BackupArchiveService
             foreach ($records as $user) fputcsv($users, [$user->email, $user->name, $user->roles->pluck('name')->implode('|'), $user->email_verified_at?->toIso8601String()]);
         });
         rewind($users); $zip->addFromString('users.csv', stream_get_contents($users)); fclose($users);
+        if (filled($passphrase)) {
+            $credentials = User::query()->with('roles')->orderBy('id')->get()->map(fn (User $user): array => [
+                'email' => $user->email, 'name' => $user->name, 'roles' => $user->roles->pluck('name')->values()->all(), 'password_hash' => $user->getRawOriginal('password'),
+            ])->values()->all();
+            $zip->addFromString('credentials.enc', $this->encryptCredentials($credentials, $passphrase));
+        }
 
         foreach ([
             'students' => [Student::query()->with(['user', 'schoolClass', 'arm']), ['email', 'name', 'student_id', 'first_name', 'last_name', 'other_names', 'gender', 'date_of_birth', 'class', 'arm', 'status']],
@@ -75,7 +81,7 @@ final class BackupArchiveService
             });
             rewind($handle); $zip->addFromString($name.'.csv', stream_get_contents($handle)); fclose($handle);
         }
-        $zip->addFromString('README.txt', "Emmaculate Academy people backup\n\nPassword hashes, PINs, tokens and other secrets are intentionally excluded. On import, existing users are matched by email; new profile rows are created only when a matching account exists. Create new login accounts in Admin and assign a role before importing.\n");
+        $zip->addFromString('README.txt', "Emmaculate Academy people backup\n\nWhen a passphrase was supplied, credentials.enc contains password hashes encrypted with that passphrase. The passphrase is required to restore accounts with their existing passwords. Plain-text passwords are never exported. Without a passphrase, the archive contains profile data only.\n");
         $zip->close();
         return $path;
     }
@@ -104,9 +110,24 @@ final class BackupArchiveService
         $zip->close(); return compact('created', 'updated', 'errors');
     }
 
-    public function importPeople(string $path): array
+    public function importPeople(string $path, ?string $passphrase = null): array
     {
         $zip = $this->open($path); $updated = 0; $created = 0; $errors = [];
+        $credentialsStream = $zip->getStream('credentials.enc');
+        if ($credentialsStream) {
+            if (blank($passphrase)) throw ValidationException::withMessages(['passphrase' => 'Enter the backup passphrase to restore login accounts.']);
+            $credentials = $this->decryptCredentials(stream_get_contents($credentialsStream), $passphrase);
+            foreach ($credentials as $credential) {
+                $email = trim((string) ($credential['email'] ?? '')); $hash = (string) ($credential['password_hash'] ?? '');
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL) || blank($hash)) { $errors[] = 'A credential row was invalid and was skipped.'; continue; }
+                $user = User::query()->firstOrNew(['email' => $email]); $isNew = ! $user->exists;
+                $user->name = (string) ($credential['name'] ?? $email); $user->save();
+                DB::table('users')->where('id', $user->id)->update(['password' => $hash]);
+                $roles = array_values(array_filter((array) ($credential['roles'] ?? [])));
+                if ($roles !== []) $user->syncRoles($roles);
+                $isNew ? $created++ : $updated++;
+            }
+        }
         foreach (['students' => Student::class, 'teachers' => Teacher::class, 'parents' => ParentProfile::class] as $file => $model) {
             $stream = $zip->getStream($file.'.csv'); if (! $stream) continue;
             $header = array_map(fn ($value) => Str::snake(trim((string) $value)), fgetcsv($stream) ?: []); $line = 1;
@@ -125,4 +146,28 @@ final class BackupArchiveService
 
     private function zip(string $path): ZipArchive { $zip = new ZipArchive(); if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw ValidationException::withMessages(['file' => 'Could not create the backup ZIP.']); return $zip; }
     private function open(string $path): ZipArchive { $zip = new ZipArchive(); if ($zip->open($path) !== true) throw ValidationException::withMessages(['file' => 'The backup ZIP could not be opened.']); return $zip; }
+
+    private function encryptCredentials(array $credentials, string $passphrase): string
+    {
+        $salt = random_bytes(SODIUM_CRYPTO_PWHASH_SALTBYTES);
+        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $key = sodium_crypto_pwhash(SODIUM_CRYPTO_SECRETBOX_KEYBYTES, $passphrase, $salt, SODIUM_CRYPTO_PWHASH_OPSLIMIT_MODERATE, SODIUM_CRYPTO_PWHASH_MEMLIMIT_MODERATE);
+        $ciphertext = sodium_crypto_secretbox(json_encode($credentials, JSON_THROW_ON_ERROR), $nonce, $key);
+        return "EMMACULATE-CREDENTIALS-V2\n".base64_encode($salt).'.'.base64_encode($nonce).'.'.base64_encode($ciphertext);
+    }
+
+    private function decryptCredentials(string $payload, string $passphrase): array
+    {
+        [$header, $encoded] = array_pad(explode("\n", $payload, 2), 2, '');
+        if ($header !== 'EMMACULATE-CREDENTIALS-V2') throw ValidationException::withMessages(['passphrase' => 'This credentials file is not a supported backup format.']);
+        [$salt, $nonce, $ciphertext] = array_pad(explode('.', trim($encoded), 3), 3, '');
+        $salt = base64_decode($salt, true); $nonce = base64_decode($nonce, true); $ciphertext = base64_decode($ciphertext, true);
+        if ($salt === false || $nonce === false || $ciphertext === false) throw ValidationException::withMessages(['file' => 'The encrypted credentials file is invalid.']);
+        $key = sodium_crypto_pwhash(SODIUM_CRYPTO_SECRETBOX_KEYBYTES, $passphrase, $salt, SODIUM_CRYPTO_PWHASH_OPSLIMIT_MODERATE, SODIUM_CRYPTO_PWHASH_MEMLIMIT_MODERATE);
+        $plain = sodium_crypto_secretbox_open($ciphertext, $nonce, $key);
+        if ($plain === false) throw ValidationException::withMessages(['passphrase' => 'The backup passphrase is incorrect.']);
+        $decoded = json_decode($plain, true);
+        if (! is_array($decoded)) throw ValidationException::withMessages(['file' => 'The encrypted credentials file is invalid.']);
+        return $decoded;
+    }
 }
