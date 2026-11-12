@@ -169,6 +169,7 @@ Create this recurring cPanel cron job to run every minute:
 The scheduler:
 
 - Sends newly published news/event notifications every five minutes.
+- Checks daily at 02:00 for a current or upcoming term within seven days and emails the previous term's Results ZIP plus the non-credential People ZIP to the school email. Each term is sent once.
 - Drains queued email jobs every minute using `queue:work --stop-when-empty`.
 - Prevents overlapping scheduled work.
 
