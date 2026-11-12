@@ -43,7 +43,43 @@ class DataBackup extends Page implements HasForms
     {
         return [
             Action::make('downloadResults')->label('Download results ZIP')->icon('heroicon-o-arrow-down-tray')->action('downloadResults'),
-            Action::make('downloadPeople')->label('Download people ZIP')->icon('heroicon-o-arrow-down-tray')->color('gray')->action('downloadPeople'),
+            Action::make('downloadEncryptedPeople')
+                ->label('Download encrypted people ZIP')
+                ->icon('heroicon-o-lock-closed')
+                ->color('gray')
+                ->modalHeading('Download encrypted people backup')
+                ->modalDescription('This includes an encrypted credential file so users can keep their existing passwords on the new domain. Keep the passphrase separate from the ZIP and never email it.')
+                ->form([
+                    Forms\Components\TextInput::make('passphrase')->label('Backup passphrase')->password()->revealable()->required()->minLength(12)->helperText('Use the same passphrase during restore.'),
+                ])
+                ->action(function (array $data) {
+                    abort_unless(static::canAccess(), 403);
+                    $path = app(BackupArchiveService::class)->peopleZip((string) $data['passphrase']);
+                    return response()->download($path, 'emmaculate-people-encrypted-'.now()->format('Ymd-His').'.zip', ['Content-Type' => 'application/zip'])->deleteFileAfterSend(true);
+                }),
+            Action::make('restoreEncryptedPeople')
+                ->label('Restore encrypted people ZIP')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('warning')
+                ->modalHeading('Restore encrypted people backup')
+                ->modalDescription('Accounts, roles and biodata will be restored. Existing accounts matched by email will be updated. This does not delete accounts that are not in the ZIP.')
+                ->form([
+                    Forms\Components\FileUpload::make('zip')->label('Encrypted People ZIP')->disk('local')->directory('backup-imports')->visibility('private')->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])->maxSize(102400)->required(),
+                    Forms\Components\TextInput::make('passphrase')->label('Backup passphrase')->password()->revealable()->required()->minLength(12),
+                ])
+                ->action(function (array $data): void {
+                    abort_unless(static::canAccess(), 403);
+                    $stored = $data['zip'] ?? null;
+                    $path = Storage::disk('local')->path(is_array($stored) ? (string) reset($stored) : (string) $stored);
+                    try {
+                        $result = app(BackupArchiveService::class)->importPeople($path, (string) $data['passphrase']);
+                        Notification::make()->success()->title('People backup restored')->body($result['created'].' accounts/profiles created, '.$result['updated'].' updated, '.count($result['errors']).' skipped.')->send();
+                    } catch (ValidationException $exception) {
+                        Notification::make()->danger()->title('People backup could not be restored')->body(collect($exception->errors())->flatten()->implode(' '))->send();
+                    } finally {
+                        @unlink($path);
+                    }
+                }),
         ];
     }
 
