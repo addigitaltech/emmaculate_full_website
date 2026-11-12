@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Domain\Backups\BackupArchiveService;
+use App\Mail\BackupArchiveMail;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AcademicTerm extends Model
@@ -27,6 +30,33 @@ class AcademicTerm extends Model
                 if (static::query()->where('academic_session_id', $term->academic_session_id)->where('is_current', true)->when($term->exists, fn ($query) => $query->whereKeyNot($term->id))->exists()) {
                     throw ValidationException::withMessages(['is_current' => 'Only one term per session may be current.']);
                 }
+            }
+        });
+
+        static::saved(function (self $term): void {
+            if (! $term->wasChanged('is_current') || ! $term->is_current) {
+                return;
+            }
+
+            $schoolEmail = SchoolSettings::query()->value('email');
+            if (! filled($schoolEmail)) {
+                return;
+            }
+
+            $backupTerm = static::query()
+                ->where('academic_session_id', $term->academic_session_id)
+                ->where('sequence', '<', $term->sequence)
+                ->orderByDesc('sequence')
+                ->first() ?: $term;
+            $service = app(BackupArchiveService::class);
+            $resultsPath = $service->resultsZip($backupTerm);
+            $peoplePath = $service->peopleZip();
+
+            try {
+                Mail::to($schoolEmail)->send(new BackupArchiveMail($backupTerm->session?->name.' — '.$backupTerm->name, $resultsPath, $peoplePath));
+            } finally {
+                @unlink($resultsPath);
+                @unlink($peoplePath);
             }
         });
     }
