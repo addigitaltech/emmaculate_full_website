@@ -5,6 +5,7 @@
             <li><strong>People ZIP:</strong> user login identifiers, roles, student/teacher/parent biodata and links. When a passphrase is supplied below, password hashes are included in an encrypted credentials file so restored users can keep their existing passwords. Plain-text passwords, PINs, reset tokens and secrets are never exported.</li>
             <li>Use the same passphrase when restoring on the new domain. Keep it separate from the ZIP and never send it by email.</li>
             <li>Keep these ZIP files private. They contain student results and personal data.</li>
+            <li>Use <strong>Trigger Pre-Term Backup Now</strong> when you want to send the previous term's Results and People ZIPs immediately instead of waiting for the 02:00 scheduler.</li>
         </ul>
     </x-filament::section>
 

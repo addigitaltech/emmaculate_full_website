@@ -3,7 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Domain\Backups\BackupArchiveService;
+use App\Mail\BackupArchiveMail;
 use App\Models\AcademicTerm;
+use App\Models\SchoolSettings;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -42,6 +44,37 @@ class DataBackup extends Page implements HasForms
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('triggerPreTermBackup')
+                ->label('Trigger Pre-Term Backup Now')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('danger')
+                ->modalHeading('Trigger pre-term backup now?')
+                ->modalDescription('This immediately emails the previous term Results ZIP and the People/biodata ZIP to the school email. The credential file is not attached. Use the encrypted People download separately when migrating passwords.')
+                ->form([
+                    Forms\Components\Select::make('term_id')->label('Upcoming or current term')->options(AcademicTerm::query()->with('session')->orderByDesc('academic_session_id')->orderByDesc('sequence')->get()->mapWithKeys(fn ($term) => [$term->id => $term->session?->name.' — '.$term->name])->all())->native(false)->required(),
+                ])
+                ->requiresConfirmation()
+                ->action(function (array $data): void {
+                    abort_unless(static::canAccess(), 403);
+                    $schoolEmail = SchoolSettings::query()->value('email');
+                    if (! filled($schoolEmail)) {
+                        Notification::make()->warning()->title('No school email configured')->body('Set the school email under Website > School Profile first.')->send();
+                        return;
+                    }
+                    $term = AcademicTerm::query()->with('session')->findOrFail((int) $data['term_id']);
+                    $previous = AcademicTerm::query()->where('academic_session_id', $term->academic_session_id)->where('sequence', '<', $term->sequence)->orderByDesc('sequence')->first() ?: $term;
+                    $service = app(BackupArchiveService::class);
+                    $resultsPath = $service->resultsZip($previous);
+                    $peoplePath = $service->peopleZip();
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($schoolEmail)->send(new BackupArchiveMail($previous->session?->name.' — '.$previous->name, $resultsPath, $peoplePath));
+                        $term->forceFill(['backup_emailed_at' => now()])->saveQuietly();
+                        Notification::make()->success()->title('Pre-term backup sent')->body('The Results and People ZIPs were sent to '.$schoolEmail.'.')->send();
+                    } finally {
+                        @unlink($resultsPath);
+                        @unlink($peoplePath);
+                    }
+                }),
             Action::make('downloadResults')
                 ->label('Download bulk results ZIP')
                 ->icon('heroicon-o-arrow-down-tray')
