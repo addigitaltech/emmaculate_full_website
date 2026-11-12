@@ -10,6 +10,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
@@ -121,7 +122,7 @@ final class BackupArchiveService
                 $email = trim((string) ($credential['email'] ?? '')); $hash = (string) ($credential['password_hash'] ?? '');
                 if (! filter_var($email, FILTER_VALIDATE_EMAIL) || blank($hash)) { $errors[] = 'A credential row was invalid and was skipped.'; continue; }
                 $user = User::query()->firstOrNew(['email' => $email]); $isNew = ! $user->exists;
-                $user->name = (string) ($credential['name'] ?? $email); $user->save();
+                $user->name = (string) ($credential['name'] ?? $email); if ($isNew) $user->password = Hash::make(Str::random(64)); $user->save();
                 DB::table('users')->where('id', $user->id)->update(['password' => $hash]);
                 $roles = array_values(array_filter((array) ($credential['roles'] ?? [])));
                 if ($roles !== []) $user->syncRoles($roles);
