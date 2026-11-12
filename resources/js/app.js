@@ -132,13 +132,19 @@ function initRealtimeSubmitSearch() {
         if (!input) return;
 
         let timer;
+        let submittedQuery = input.value.trim();
         input.addEventListener('input', () => {
             clearTimeout(timer);
+            const query = input.value.trim();
+            if (query.length === 1) return;
+            if (query === submittedQuery) return;
+
             timer = setTimeout(() => {
+                submittedQuery = query;
                 form.setAttribute('aria-busy', 'true');
                 if (typeof form.requestSubmit === 'function') form.requestSubmit();
                 else form.submit();
-            }, 280);
+            }, 350);
         });
     });
 }
