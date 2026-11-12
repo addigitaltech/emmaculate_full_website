@@ -9,7 +9,7 @@
     </x-filament::section>
 
     <x-filament::section heading="Restore a backup">
-        <p style="margin:0 0 1rem">Use the <strong>Download encrypted people ZIP</strong> and <strong>Restore encrypted people ZIP</strong> buttons above to move login accounts with their existing passwords. The passphrase is required and is never included in the ZIP.</p>
+        <p style="margin:0 0 1rem">Use the buttons above to download or restore bulk Results ZIPs and to move login accounts with their existing passwords. Results backups do not require a passphrase; encrypted People backups do. A People passphrase is never included in the ZIP.</p>
         <form wire:submit.prevent="restore">
             {{ $this->form }}
             <div style="margin-top:1rem"><x-filament::button type="submit">Restore selected ZIP files</x-filament::button></div>

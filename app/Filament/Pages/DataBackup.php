@@ -42,7 +42,42 @@ class DataBackup extends Page implements HasForms
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('downloadResults')->label('Download results ZIP')->icon('heroicon-o-arrow-down-tray')->action('downloadResults'),
+            Action::make('downloadResults')
+                ->label('Download bulk results ZIP')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->modalHeading('Download bulk results backup')
+                ->modalDescription('Choose one academic term or all terms. The ZIP can be restored on this school or a new domain using Student IDs and subject/session identifiers.')
+                ->form([
+                    Forms\Components\Select::make('term_id')->label('Results to include')->options(['' => 'All academic terms'] + AcademicTerm::query()->with('session')->orderByDesc('academic_session_id')->orderByDesc('sequence')->get()->mapWithKeys(fn ($term) => [$term->id => $term->session?->name.' — '.$term->name])->all())->native(false)->required(),
+                ])
+                ->action(function (array $data) {
+                    abort_unless(static::canAccess(), 403);
+                    $term = filled($data['term_id'] ?? null) ? AcademicTerm::query()->find((int) $data['term_id']) : null;
+                    $path = app(BackupArchiveService::class)->resultsZip($term);
+                    return response()->download($path, 'emmaculate-results-'.now()->format('Ymd-His').'.zip', ['Content-Type' => 'application/zip'])->deleteFileAfterSend(true);
+                }),
+            Action::make('restoreResults')
+                ->label('Restore bulk results ZIP')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('warning')
+                ->modalHeading('Restore bulk results backup')
+                ->modalDescription('Existing result rows are updated by Student ID, subject and academic term. Rows not in the ZIP are not deleted.')
+                ->form([
+                    Forms\Components\FileUpload::make('zip')->label('Results ZIP')->disk('local')->directory('backup-imports')->visibility('private')->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])->maxSize(102400)->required(),
+                ])
+                ->action(function (array $data): void {
+                    abort_unless(static::canAccess(), 403);
+                    $stored = $data['zip'] ?? null;
+                    $path = Storage::disk('local')->path(is_array($stored) ? (string) reset($stored) : (string) $stored);
+                    try {
+                        $result = app(BackupArchiveService::class)->importResults($path);
+                        Notification::make()->success()->title('Results backup restored')->body($result['created'].' created, '.$result['updated'].' updated, '.count($result['errors']).' skipped.')->send();
+                    } catch (ValidationException $exception) {
+                        Notification::make()->danger()->title('Results backup could not be restored')->body(collect($exception->errors())->flatten()->implode(' '))->send();
+                    } finally {
+                        @unlink($path);
+                    }
+                }),
             Action::make('downloadEncryptedPeople')
                 ->label('Download encrypted people ZIP')
                 ->icon('heroicon-o-lock-closed')
