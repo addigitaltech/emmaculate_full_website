@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             PublicContentSeeder::class,
             AcademicDefaultsSeeder::class,
+            AcademicCatalogueSeeder::class,
             DesignRefreshSeeder::class,
         ]);
     }

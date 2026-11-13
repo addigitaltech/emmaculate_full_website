@@ -47,8 +47,8 @@ class StudentResource extends AuthorizedResource
             Forms\Components\Select::make('gender')->options(['Female' => 'Female', 'Male' => 'Male'])->required(),
             Forms\Components\DatePicker::make('date_of_birth')->maxDate(now())->required(),
             Forms\Components\Select::make('school_class_id')->label('Class')->relationship('schoolClass', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true))->searchable()->preload()->required()->live()->afterStateUpdated(fn (Set $set) => $set('arm_id', null)),
-            Forms\Components\Select::make('arm_id')->label('Arm')->options(fn (Get $get) => Arm::query()->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->orderBy('name')->pluck('name', 'id'))->searchable()->placeholder('No arm')
-                ->required(fn (Get $get): bool => (bool) $get('school_class_id') && Arm::query()->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->exists()),
+            Forms\Components\Select::make('arm_id')->label('Arm')->options(fn (Get $get) => Arm::query()->where('is_active', true)->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->orderBy('name')->pluck('name', 'id'))->searchable()->placeholder('No arm')
+                ->required(fn (Get $get): bool => (bool) $get('school_class_id') && Arm::query()->where('is_active', true)->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->exists()),
             Forms\Components\Select::make('photo_id')->label('Passport photograph')->relationship('photo', 'original_name', modifyQueryUsing: fn ($query) => $query->where('mime_type', 'like', 'image/%'))->searchable()->preload()->placeholder('No passport photograph')
                 ->helperText('Choose an existing photo, or use the + button to upload a passport photograph straight from this page.')
                 ->createOptionModalHeading('Upload passport photograph')

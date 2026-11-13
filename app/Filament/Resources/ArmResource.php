@@ -27,6 +27,7 @@ class ArmResource extends AuthorizedResource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required(),
+                Forms\Components\Toggle::make('is_active')->label('Active')->default(false),
             ]);
     }
 
@@ -36,6 +37,7 @@ class ArmResource extends AuthorizedResource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\IconColumn::make('is_active')->boolean()->label('Active'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Arm extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'is_active'];
+    protected function casts(): array { return ['is_active' => 'boolean']; }
 
     public function classes()
     {

@@ -28,7 +28,7 @@ class ClassTeacherResource extends AuthorizedResource
         return $form->schema([
             Forms\Components\Select::make('teacher_id')->label('Class teacher')->options(fn () => Teacher::query()->where('status', 'active')->orderBy('last_name')->get()->mapWithKeys(fn (Teacher $teacher) => [$teacher->id => $teacher->fullName().($teacher->staff_number ? ' · '.$teacher->staff_number : '')]))->searchable()->required(),
             Forms\Components\Select::make('school_class_id')->label('Class')->options(fn () => SchoolClass::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))->searchable()->required()->live()->afterStateUpdated(fn (Set $set) => $set('arm_id', null)),
-            Forms\Components\Select::make('arm_id')->label('Arm (leave blank only for a class without arms)')->options(fn (Get $get) => Arm::query()->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->orderBy('name')->pluck('name', 'id'))->searchable(),
+            Forms\Components\Select::make('arm_id')->label('Arm (leave blank only for a class without arms)')->options(fn (Get $get) => Arm::query()->where('is_active', true)->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->orderBy('name')->pluck('name', 'id'))->searchable(),
         ])->columns(2);
     }
 
