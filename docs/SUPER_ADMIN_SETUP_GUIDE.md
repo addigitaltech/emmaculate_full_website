@@ -75,7 +75,7 @@ Complete **Classes & subjects** in this order:
 1. **Academic sessions and terms** — create the school year, then its First, Second and Third terms. Mark one session active and one term current. A third term is needed for cumulative promotion/report workflows.
 2. **Classes** — create classes such as Nursery 1, Primary 1, JSS1 or SS3. Mark active classes and identify the final class used for graduation.
 3. **Arms** — create A, B, Gold, Blue or the school's actual arms and attach them to the relevant classes.
-4. **Subjects** — create general and class-specific subjects and mark active subjects.
+4. **Subjects** — create general and class-specific subjects and mark active subjects. One subject can now be assigned to any number of classes in the **Classes** selector; select two, three, four or more classes when the same subject is taught across them. Leave the selector empty only for a school-wide shared subject.
 5. **Assessment and grading** — configure CA 1, CA 2, CA 3 and examination maxima, pass percentage and grade bands. Check that the grade ranges cover 0–100 without unintended gaps or overlaps.
 6. **Subject assignments** — use Who teaches what / subject-teacher assignments after teachers and subjects exist.
 7. **Class teachers** — assign at most one class teacher per class arm. The class teacher can record behaviour ratings and the principal/class-teacher remark where permitted.

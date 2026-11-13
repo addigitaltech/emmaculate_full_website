@@ -20,7 +20,7 @@ class AssessmentConfig extends Model
                 throw ValidationException::withMessages(['academic_term_id' => 'The term must belong to the selected session.']);
             }
             $subject = Subject::query()->find($config->subject_id);
-            if (! $subject || ($subject->school_class_id && (int) $subject->school_class_id !== (int) $config->school_class_id)) {
+            if (! $subject || ! $subject->appliesToClass((int) $config->school_class_id)) {
                 throw ValidationException::withMessages(['subject_id' => 'The subject must be valid for the selected class.']);
             }
         });

@@ -6,7 +6,6 @@ use App\Filament\Resources\SubjectResource\Pages;
 use App\Models\Subject;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -23,18 +22,17 @@ class SubjectResource extends AuthorizedResource
         return $form->schema([
             Forms\Components\TextInput::make('code')->maxLength(40)->unique(ignoreRecord: true),
             Forms\Components\TextInput::make('name')->required()->maxLength(140),
-            Forms\Components\Select::make('school_class_id')->label('Class (leave blank for shared subject)')->relationship('schoolClass', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true))->searchable()->preload()->live()->afterStateUpdated(fn ($set) => $set('arm_id', null)),
-            Forms\Components\Select::make('arm_id')->label('Arm (optional)')->options(fn (Get $get) => \App\Models\Arm::query()->whereHas('classes', fn ($query) => $query->whereKey($get('school_class_id')))->orderBy('name')->pluck('name', 'id'))->searchable()->placeholder('All arms'),
+            Forms\Components\Select::make('schoolClasses')->label('Classes (select any number)')->relationship('schoolClasses', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true))->multiple()->searchable()->preload()->helperText('Select one, two, three, four or as many classes as this subject is taught in. Leave empty for a school-wide shared subject.'),
             Forms\Components\Select::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive'])->default('active')->required(),
         ])->columns(2);
     }
 
     public static function table(Table $table): Table
     {
-        return $table->modifyQueryUsing(fn ($query) => $query->with(['schoolClass', 'arm']))->columns([
+        return $table->modifyQueryUsing(fn ($query) => $query->with(['schoolClasses', 'schoolClass', 'arm']))->columns([
             Tables\Columns\TextColumn::make('code')->searchable(),
             Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
-            Tables\Columns\TextColumn::make('schoolClass.name')->label('Class')->sortable(),
+            Tables\Columns\TextColumn::make('schoolClasses.name')->label('Classes')->listWithLineBreaks()->limitList(5)->expandableLimitedList(),
             Tables\Columns\TextColumn::make('arm.name')->label('Arm'),
             Tables\Columns\TextColumn::make('status')->badge()->sortable(),
         ])->actions([Tables\Actions\EditAction::make()])->bulkActions([]);

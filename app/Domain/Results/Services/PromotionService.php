@@ -268,7 +268,7 @@ final class PromotionService
         }
 
         $subjects = Subject::query()->where('status', 'active')
-            ->where(fn ($query) => $query->whereNull('school_class_id')->orWhere('school_class_id', $sourceClassId))
+            ->forClass((int) $sourceClassId)
             ->where(fn ($query) => $query->whereNull('arm_id')->when($sourceArmId, fn ($armQuery) => $armQuery->orWhere('arm_id', $sourceArmId)))
             ->orderBy('name')->get();
         if ($subjects->isEmpty()) {
