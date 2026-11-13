@@ -80,9 +80,9 @@ Complete **Classes & subjects** in this order:
 6. **Subject assignments** — use Who teaches what / subject-teacher assignments after teachers and subjects exist.
 7. **Class teachers** — assign at most one class teacher per class arm. The class teacher can record behaviour ratings and the principal/class-teacher remark where permitted.
 
-The deployment includes an inactive academic catalogue for sessions **2026/2027 through 2029/2030**, First/Second/Third Terms, JSS 1–3, SS 1–3, the requested JSS and senior subjects, class arms, subject categories and separate WAEC codes. It is database-seeded and does not replace existing records. Activate only the session, term, class, arm, subject category, WAEC code and subject records needed for the school. New sessions beyond 2030 can be added from the same admin pages.
+The deployment includes an inactive academic catalogue for sessions **2026/2027 through 2029/2030**, First/Second/Third Terms, JSS 1–3, SS 1–3, the requested JSS and senior subjects, class arms and subject categories. It is database-seeded and does not replace existing records. Activate only the session, term, class, arm, subject category and subject records needed for the school. New sessions beyond 2030 can be added from the same admin pages.
 
-Use **Subject categories** and **WAEC subject codes** under **Classes & subjects** to manage those catalogues independently. Internal subject codes such as `SS-ENG` remain separate from WAEC codes such as `302`.
+Use **Subject categories** under **Classes & subjects** to organize subjects independently from each subject's internal school code.
 
 Do not import students into a class or arm that has not been created. If a CSV names an unknown class or arm, that row is rejected.
 

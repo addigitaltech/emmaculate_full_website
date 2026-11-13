@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class Subject extends Model
 {
-    protected $fillable = ['code', 'name', 'subject_category_id', 'waec_subject_code_id', 'school_class_id', 'arm_id', 'status'];
+    protected $fillable = ['code', 'name', 'subject_category_id', 'school_class_id', 'arm_id', 'status'];
 
     protected static function booted(): void
     {
@@ -24,7 +24,6 @@ class Subject extends Model
 
     public function schoolClass() { return $this->belongsTo(SchoolClass::class); }
     public function category() { return $this->belongsTo(SubjectCategory::class, 'subject_category_id'); }
-    public function waecCode() { return $this->belongsTo(WaecSubjectCode::class, 'waec_subject_code_id'); }
     public function schoolClasses() { return $this->belongsToMany(SchoolClass::class, 'subject_school_class')->withTimestamps(); }
     public function arm() { return $this->belongsTo(Arm::class); }
     public function teacherAssignments() { return $this->hasMany(TeacherAssignment::class); }

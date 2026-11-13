@@ -7,7 +7,6 @@ use App\Models\Arm;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\SubjectCategory;
-use App\Models\WaecSubjectCode;
 use Illuminate\Database\Seeder;
 
 class AcademicCatalogueSeeder extends Seeder
@@ -69,27 +68,13 @@ class AcademicCatalogueSeeder extends Seeder
             }
         }
 
-        $waec = [
-            'Commerce' => '103', 'Accounting' => '104', 'Marketing' => '112', 'Christian Religious Studies' => '202', 'Economics' => '203',
-            'Geography' => '204', 'Government' => '205', 'Nigerian History' => '207', 'Islamic Studies' => '208', 'Literature in English' => '210',
-            'Civic Education' => '216', 'Arabic' => '301', 'English Language' => '302', 'French' => '304', 'Hausa' => '327', 'Igbo' => '328',
-            'Yoruba' => '329', 'Further Mathematics' => '401', 'General Mathematics' => '402', 'Agriculture' => '502', 'Biology' => '504',
-            'Chemistry' => '505', 'Health Education' => '508', 'Physical Education' => '511', 'Physics' => '512', 'Technical Drawing' => '608',
-            'Foods and Nutrition' => '702', 'Home Management' => '703', 'Music' => '705', 'Visual Art' => '706',
-        ];
-        foreach ($waec as $name => $code) {
-            $waecCode = WaecSubjectCode::query()->firstOrCreate(['code' => $code], ['subject_name' => $name, 'is_active' => false]);
-            Subject::query()->where('name', $name)->whereNull('waec_subject_code_id')->update(['waec_subject_code_id' => $waecCode->id]);
-        }
     }
 
     private function subject(string $name, string $code, SubjectCategory $category, $classes): void
     {
-        $waec = WaecSubjectCode::query()->where('subject_name', $name)->first();
         $subject = Subject::query()->firstOrCreate(['code' => $code], [
             'name' => $name,
             'subject_category_id' => $category->id,
-            'waec_subject_code_id' => $waec?->id,
             'status' => 'inactive',
         ]);
         $subject->schoolClasses()->syncWithoutDetaching($classes->pluck('id')->all());

@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SubjectResource\Pages;
 use App\Models\Subject;
 use App\Models\SubjectCategory;
-use App\Models\WaecSubjectCode;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Tables;
@@ -25,7 +24,6 @@ class SubjectResource extends AuthorizedResource
             Forms\Components\TextInput::make('code')->maxLength(40)->unique(ignoreRecord: true),
             Forms\Components\TextInput::make('name')->required()->maxLength(140),
             Forms\Components\Select::make('subject_category_id')->label('Category')->options(fn () => SubjectCategory::query()->orderBy('name')->pluck('name', 'id'))->searchable()->preload(),
-            Forms\Components\Select::make('waec_subject_code_id')->label('WAEC code')->options(fn () => WaecSubjectCode::query()->orderBy('code')->get()->mapWithKeys(fn (WaecSubjectCode $code) => [$code->id => $code->subject_name.' · '.$code->code]))->searchable()->preload(),
             Forms\Components\Select::make('schoolClasses')->label('Classes (select any number)')->relationship('schoolClasses', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true))->multiple()->searchable()->preload()->helperText('Select one, two, three, four or as many classes as this subject is taught in. Leave empty for a school-wide shared subject.'),
             Forms\Components\Select::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive'])->default('active')->required(),
         ])->columns(2);
@@ -33,11 +31,10 @@ class SubjectResource extends AuthorizedResource
 
     public static function table(Table $table): Table
     {
-        return $table->modifyQueryUsing(fn ($query) => $query->with(['schoolClasses', 'schoolClass', 'arm', 'category', 'waecCode']))->columns([
+        return $table->modifyQueryUsing(fn ($query) => $query->with(['schoolClasses', 'schoolClass', 'arm', 'category']))->columns([
             Tables\Columns\TextColumn::make('code')->searchable(),
             Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('category.name')->label('Category')->toggleable(),
-            Tables\Columns\TextColumn::make('waecCode.code')->label('WAEC')->toggleable(),
             Tables\Columns\TextColumn::make('schoolClasses.name')->label('Classes')->listWithLineBreaks()->limitList(5)->expandableLimitedList(),
             Tables\Columns\TextColumn::make('arm.name')->label('Arm'),
             Tables\Columns\TextColumn::make('status')->badge()->sortable(),
